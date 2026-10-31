@@ -2,7 +2,7 @@
 // It offers the same calls as the 2D map (update, setRoute, setUser, fit, reset, zoom, focus, ...).
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { SITE, SPOTS } from '../config.js';
-import { center, outline } from './geo.js';
+import { center, outline, pondOutline } from './geo.js';
 
 const FLOOR_M = 3.4;
 const FOV = 38;
@@ -16,18 +16,18 @@ const BIKE_COLOURS = ['#1b1f24', '#2c3e5e', '#e3e7ea', '#c0392b', '#2f5d46', '#8
 const PALETTE = {
   light: {
     sky: '#dbe6ee', land: '#c3d2b8', site: '#d6e2c9', road: '#8994a0', roadLine: '#f4f6f7', walk: '#f4efe2',
-    park: '#9fca88', hedge: '#77a862', water: '#5f9fc4', plaza: '#e8dfcc', fountain: '#7ab4d4',
+    park: '#9fca88', hedge: '#77a862', water: '#6fb0d2', waterDeep: '#2f76a6', shore: '#d8cba5', lily: '#4f9a3c', plaza: '#e8dfcc', fountain: '#7ab4d4',
     wall: '#a3afbd', roof: '#7f8c9b', wallAlt: '#c8ae92', roofAlt: '#a38a70', window: '#4b5f74',
-    house: '#e2d6c4', houseRoof: '#bfb09c', tree: '#4c9644', treeFar: '#6c9f5f', pine: '#2c7440', trunk: '#76563a',
+    house: '#e2d6c4', houseRoof: '#bfb09c', npcWall: '#b7bec7', npcRoof: '#959ea8', tree: '#4c9644', treeFar: '#6c9f5f', pine: '#2c7440', trunk: '#76563a',
     clay: '#c4643a', courtLine: '#ffffff', net: '#2b3138', tennisLot: '#6fa25e', metal: '#59626c', glass: '#8fd0ee',
     shelter: '#a9cbe0', label: '#26313b', zebra: '#ffffff', fence: '#7a887e',
     hemi: 1.05, sun: 1.25, ambient: 0.25,
   },
   dark: {
     sky: '#0a0f15', land: '#17211a', site: '#1d2a21', road: '#343e48', roadLine: '#8c96a0', walk: '#3c4940',
-    park: '#21402a', hedge: '#2e5a39', water: '#235a78', plaza: '#363e38', fountain: '#2f6f93',
+    park: '#21402a', hedge: '#2e5a39', water: '#2a6788', waterDeep: '#123a55', shore: '#47432f', lily: '#356f2c', plaza: '#363e38', fountain: '#2f6f93',
     wall: '#56636f', roof: '#3d4853', wallAlt: '#65574a', roofAlt: '#4b4138', window: '#e3c27a',
-    house: '#46514b', houseRoof: '#363f3a', tree: '#2e6a39', treeFar: '#285532', pine: '#1e5430', trunk: '#5b4431',
+    house: '#46514b', houseRoof: '#363f3a', npcWall: '#454e58', npcRoof: '#353d46', tree: '#2e6a39', treeFar: '#285532', pine: '#1e5430', trunk: '#5b4431',
     clay: '#9e4f2d', courtLine: '#d9dde1', net: '#c8ced4', tennisLot: '#2b4a31', metal: '#a9b3bc', glass: '#5fb2d6',
     shelter: '#5b86a0', label: '#dfe5ea', zebra: '#9aa3ab', fence: '#56645b',
     hemi: 0.55, sun: 0.75, ambient: 0.18,
@@ -67,17 +67,48 @@ function tube(a, b, r) {
   return g;
 }
 
-// A bike about 1.8 m long along local x, standing on y = 0.
+// A city bike along local x, standing on y = 0, drawn about 1.35 times life size so it reads as a bike from
+// the overview. Three parts so each can have its own colour: the painted frame, the black rubber and
+// saddle, and the metal (rims, spokes, cranks, seat post, handlebar stem).
+const BIKE_SCALE = 1.35;
 function bikeGeometries() {
   const p = (x, y, z = 0) => new THREE.Vector3(x, y, z);
-  const rear = p(-0.55, 0.34), front = p(0.55, 0.34), bb = p(-0.05, 0.3), seat = p(-0.26, 0.86), head = p(0.38, 0.84);
+  const R = 0.34, rearHub = p(-0.54, R), frontHub = p(0.56, R), bb = p(-0.06, 0.3), seatTop = p(-0.24, 0.82);
+  const headTop = p(0.4, 0.84), headLow = p(0.44, 0.7), seatPost = p(-0.29, 0.95), stemTop = p(0.37, 1.02);
   const frame = merge([
-    tube(rear, bb, 0.03), tube(bb, seat, 0.032), tube(seat, head, 0.03), tube(bb, head, 0.036), tube(head, front, 0.03),
-    tube(seat, rear, 0.024), tube(head, p(0.36, 1.0), 0.026), tube(p(0.36, 1.0, -0.26), p(0.36, 1.0, 0.26), 0.022),
-    new THREE.BoxGeometry(0.26, 0.05, 0.12).translate(-0.28, 0.9, 0),
+    tube(bb, seatTop, 0.034), tube(seatTop, headTop, 0.032), tube(bb, headLow, 0.04), tube(headLow, headTop, 0.036),
+    tube(p(-0.54, R, 0.06), p(-0.06, 0.3, 0.03), 0.022), tube(p(-0.54, R, -0.06), p(-0.06, 0.3, -0.03), 0.022), // chain stays
+    tube(p(-0.54, R, 0.06), p(-0.24, 0.82, 0.02), 0.02), tube(p(-0.54, R, -0.06), p(-0.24, 0.82, -0.02), 0.02), // seat stays
+    tube(headLow, p(0.56, R, 0.05), 0.024), tube(headLow, p(0.56, R, -0.05), 0.024), // fork
+    new THREE.TorusGeometry(R + 0.07, 0.012, 4, 14, Math.PI * 0.55).rotateZ(Math.PI * 0.25).translate(-0.54, R, 0), // rear mudguard
+    new THREE.TorusGeometry(R + 0.07, 0.012, 4, 14, Math.PI * 0.55).rotateZ(Math.PI * 0.2).translate(0.56, R, 0), // front mudguard
   ]);
-  const wheel = x => new THREE.TorusGeometry(0.34, 0.035, 6, 18).translate(x, 0.34, 0);
-  return { frame, wheels: merge([wheel(-0.55), wheel(0.55)]) };
+  const tyre = c => new THREE.TorusGeometry(R, 0.045, 6, 22).translate(c.x, c.y, 0);
+  const dark = merge([
+    tyre(rearHub), tyre(frontHub),
+    new THREE.BoxGeometry(0.27, 0.06, 0.15).translate(-0.3, 0.99, 0), // saddle
+    tube(p(0.34, 1.03, -0.3), p(0.34, 1.03, -0.22), 0.03), tube(p(0.34, 1.03, 0.22), p(0.34, 1.03, 0.3), 0.03), // grips
+    new THREE.BoxGeometry(0.1, 0.03, 0.06).translate(-0.06, 0.12, 0.13), new THREE.BoxGeometry(0.1, 0.03, 0.06).translate(-0.06, 0.48, -0.13), // pedals
+  ]);
+  const spokes = c => Array.from({ length: 6 }, (_, i) => {
+    const a = (i / 6) * Math.PI;
+    return tube(p(c.x - Math.cos(a) * (R - 0.04), c.y - Math.sin(a) * (R - 0.04)), p(c.x + Math.cos(a) * (R - 0.04), c.y + Math.sin(a) * (R - 0.04)), 0.006);
+  });
+  const metal = merge([
+    new THREE.TorusGeometry(R - 0.035, 0.014, 4, 22).translate(rearHub.x, rearHub.y, 0), new THREE.TorusGeometry(R - 0.035, 0.014, 4, 22).translate(frontHub.x, frontHub.y, 0),
+    ...spokes(rearHub), ...spokes(frontHub),
+    tube(seatTop, seatPost, 0.018), tube(headTop, stemTop, 0.02), tube(p(0.34, 1.03, -0.24), p(0.34, 1.03, 0.24), 0.017), // seat post, stem, bar
+    new THREE.CylinderGeometry(0.09, 0.09, 0.02, 14).rotateX(Math.PI / 2).translate(-0.06, 0.3, 0.07), // chainring
+    tube(p(-0.06, 0.3, 0.1), p(-0.06, 0.12, 0.13), 0.014), tube(p(-0.06, 0.3, -0.1), p(-0.06, 0.48, -0.13), 0.014), // cranks
+  ]);
+  for (const g of [frame, dark, metal]) g.scale(BIKE_SCALE, BIKE_SCALE, BIKE_SCALE);
+  return { frame, dark, metal };
+}
+
+// The pond: a sandy shore, an outer ring of shallow water and a deeper middle.
+function pondShapes(pond) {
+  const ring = k => pondOutline(pond, k);
+  return { shore: ring(1.16), shallow: ring(1), deep: ring(0.62) };
 }
 
 // Window pattern for office walls: one window per 4 m and per floor.
@@ -205,7 +236,25 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
     const p = SITE.park;
     flat(rectPts(p), 0.05, 'hedge');
     flat(rectPts({ x: p.x + 1.2, y: p.y + 1.2, w: p.w - 2.4, h: p.h - 2.4 }), 0.07, 'park');
-    if (p.pond) flat(ellipsePts(p.pond.x, p.pond.y, p.pond.rx, p.pond.ry), 0.1, 'water', { roughness: 0.25 });
+    if (p.pond) {
+      // Sandy shore, shallow water, a deeper glossy middle, lily pads and a few reeds.
+      const pond = pondShapes(p.pond);
+      flat(pond.shore, 0.09, 'shore');
+      flat(pond.shallow, 0.11, 'water', { roughness: 0.15, metalness: 0.1 });
+      flat(pond.deep, 0.13, 'waterDeep', { roughness: 0.05, metalness: 0.25 });
+      const { x, y, rx, ry } = p.pond;
+      for (const [dx, dy, r] of [[0.55, -0.3, 1.1], [0.68, 0.05, 0.8], [-0.62, 0.35, 0.95], [-0.5, 0.52, 0.7], [0.3, 0.55, 0.6]]) {
+        const pad = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.05, 14, 1, false, 0.4, Math.PI * 1.85), mat('lily'));
+        pad.position.copy(V(x + dx * rx, y + dy * ry, 0.16));
+        scene.add(pad);
+      }
+      for (const a of [2.6, 2.9, 3.2, 5.9, 6.15, 4.5]) for (const [ox, h] of [[-0.3, 1.4], [0, 1.8], [0.35, 1.2]]) {
+        const reed = new THREE.Mesh(new THREE.ConeGeometry(0.07, h, 4), mat('lily'));
+        reed.position.copy(V(x + Math.cos(a) * rx * 1.07 + ox, y + Math.sin(a) * ry * 1.07, h / 2));
+        reed.castShadow = true;
+        scene.add(reed);
+      }
+    }
   }
   if (SITE.tennis) {
     const t = SITE.tennis;
@@ -235,7 +284,8 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
   }
   for (const c of SITE.crossings || []) {
     flat(rectPts(c), 0.09, 'road');
-    for (let x = c.x + 0.5; x < c.x + c.w; x += 2) flat(rectPts({ x, y: c.y + 0.6, w: 1, h: c.h - 1.2 }), 0.11, 'zebra');
+    if (c.vertical) for (let y = c.y + 0.5; y < c.y + c.h; y += 2) flat(rectPts({ x: c.x + 0.6, y, w: c.w - 1.2, h: 1 }), 0.11, 'zebra');
+    else for (let x = c.x + 0.5; x < c.x + c.w; x += 2) flat(rectPts({ x, y: c.y + 0.6, w: 1, h: c.h - 1.2 }), 0.11, 'zebra');
   }
   if (SITE.plaza) {
     const { x, y, r } = SITE.plaza;
@@ -271,7 +321,10 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
     const [cx, cy] = b.labelAt || center(b);
     textSprite(b.label, cx, cy, height + 0.6, 3.2);
   }
-  for (const h of SITE.around?.houses || []) block(outline(h), (h.floors || 1) * FLOOR_M, mat('house'), mat('houseRoof'));
+  for (const h of SITE.around?.houses || []) {
+    const grey = h.tone === 'grey';
+    block(outline(h), (h.floors || 1) * FLOOR_M, mat(grey ? 'npcWall' : 'house'), mat(grey ? 'npcRoof' : 'houseRoof'));
+  }
   if (SITE.park?.label) textSprite(SITE.park.label, ...SITE.park.labelAt, 0.3, 3.6);
 
   // ---------- trees: round crowns and pines, instanced ----------
@@ -332,15 +385,17 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
     pad.position.copy(V(cx, cy, 0.15));
     scene.add(pad);
     const hoops = new THREE.InstancedMesh(hoopGeo, mat('metal', { metalness: 0.4, roughness: 0.5 }), slots.length);
-    slots.forEach((s, i) => hoops.setMatrixAt(i, m4.compose(V(s.x, s.y, 0.15), q.setFromEuler(new THREE.Euler(0, s.rot, 0)), sc.set(1, 1, 1))));
+    slots.forEach((s, i) => hoops.setMatrixAt(i, m4.compose(V(s.x, s.y, 0.15), q.setFromEuler(new THREE.Euler(0, s.rot, 0)), sc.setScalar(BIKE_SCALE))));
     hoops.castShadow = true;
     scene.add(hoops);
-    const frames = new THREE.InstancedMesh(bikeGeo.frame, mat('bikeFrame', { color: 0xffffff, roughness: 0.6 }), slots.length);
-    const wheels = new THREE.InstancedMesh(bikeGeo.wheels, mat('tyre', { color: '#15191d', roughness: 0.8 }), slots.length);
-    frames.count = wheels.count = 0;
-    frames.castShadow = wheels.castShadow = true;
-    scene.add(frames, wheels);
-    if (spot.roof) {
+    const frames = new THREE.InstancedMesh(bikeGeo.frame, mat('bikeFrame', { color: 0xffffff, roughness: 0.45, metalness: 0.15 }), slots.length);
+    const wheels = new THREE.InstancedMesh(bikeGeo.dark, mat('tyre', { color: '#15191d', roughness: 0.8 }), slots.length);
+    const metals = new THREE.InstancedMesh(bikeGeo.metal, mat('chrome', { color: '#b8c0c8', roughness: 0.3, metalness: 0.7 }), slots.length);
+    frames.count = wheels.count = metals.count = 0;
+    frames.castShadow = wheels.castShadow = metals.castShadow = true;
+    scene.add(frames, wheels, metals);
+    if (spot.roof?.curved) curvedShelter(r, spot.roof.back);
+    else if (spot.roof) {
       const horizontal = r.w >= r.h, ox = horizontal ? 1 : 2.6, oy = horizontal ? 2.6 : 1, zr = 2.7;
       const fx = r.x - ox, fy = r.y - oy, fw = r.w + 2 * ox, fh = r.h + 2 * oy;
       const roof = new THREE.Mesh(new THREE.BoxGeometry(fw, 0.08, fh), mat('shelter', { transparent: true, opacity: 0.42, roughness: 0.3, depthWrite: false }));
@@ -375,7 +430,41 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
     pin.userData.id = spot.id;
     scene.add(pin);
     hits.push(pin);
-    racks.set(spot.id, { spot, slots, pad, frames, wheels, pin, pc, ptex, item: null, bikes: -1, selected: false });
+    racks.set(spot.id, { spot, slots, pad, frames, wheels, metals, pin, pc, ptex, item: null, bikes: -1, selected: false });
+  }
+
+  // A typical bike shelter: posts along the back, and a roof that rises from them and curves forward over the bikes.
+  function curvedShelter(r, back) {
+    const horizontal = back === 'n' || back === 's';
+    const length = (horizontal ? r.w : r.h) + 1, depth = (horizontal ? r.h : r.w) + 1.2;
+    const f = { n: [0, 0, 1], s: [0, 0, -1], e: [-1, 0, 0], w: [1, 0, 0] }[back]; // forward: from the back towards the bikes
+    const forward = new THREE.Vector3(...f), up = new THREE.Vector3(0, 1, 0), along = new THREE.Vector3().crossVectors(forward, up);
+    const [cx, cy] = center(r);
+    const backMid = V(cx, cy).addScaledVector(forward, -depth / 2);
+    const lift = u => 2.35 + 0.55 * Math.sin((Math.PI * 0.85 * u) / depth); // rises, then dips at the front edge
+    const top = [], bottom = [];
+    for (let i = 0; i <= 18; i++) {
+      const u = (i / 18) * depth;
+      top.push(new THREE.Vector2(u, lift(u)));
+      bottom.unshift(new THREE.Vector2(u, lift(u) - 0.07));
+    }
+    const geo = new THREE.ExtrudeGeometry(new THREE.Shape([...top, ...bottom]), { depth: length, bevelEnabled: false });
+    const roof = new THREE.Mesh(geo, mat('shelter', { transparent: true, opacity: 0.5, roughness: 0.3, depthWrite: false, side: THREE.DoubleSide }));
+    roof.matrixAutoUpdate = false;
+    roof.matrix.makeBasis(forward, up, along).setPosition(backMid.clone().addScaledVector(along, -length / 2));
+    roof.castShadow = true;
+    scene.add(roof);
+    const posts = Math.max(2, Math.round(length / 4) + 1);
+    for (let i = 0; i < posts; i++) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, lift(0), 8), mat('metal'));
+      post.position.copy(backMid).addScaledVector(along, -length / 2 + (i / (posts - 1)) * length).setY(lift(0) / 2);
+      post.castShadow = true;
+      scene.add(post);
+    }
+    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, length, 6), mat('metal'));
+    rail.quaternion.setFromUnitVectors(up, along);
+    rail.position.copy(backMid).setY(0.9);
+    scene.add(rail);
   }
 
   function drawPin(node) {
@@ -407,21 +496,20 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
 
   // Bikes in the stands: the share of stands the camera or photo found taken, at stable pseudo-random places.
   function placeBikes(node) {
-    const { spot, slots, frames, wheels, item } = node;
+    const { spot, slots, frames, wheels, metals, item } = node;
     const n = Math.round(slots.length * (item?.occupancy ?? 0));
     if (n === node.bikes) return;
     node.bikes = n;
     const rand = rng(spot.id.charCodeAt(0) * 977 + spot.capacity), order = slots.map((_, i) => i);
     for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     order.slice(0, n).forEach((slot, k) => {
-      const s = slots[slot], wobble = (rand() - 0.5) * 0.35;
+      const s = slots[slot], wobble = (rand() - 0.5) * 0.18;
       m4.compose(V(s.x, s.y, 0.15), q.setFromEuler(new THREE.Euler(0, s.rot + wobble, 0)), sc.set(1, 1, 1));
-      frames.setMatrixAt(k, m4);
-      wheels.setMatrixAt(k, m4);
+      for (const im of [frames, wheels, metals]) im.setMatrixAt(k, m4);
       frames.setColorAt(k, new THREE.Color(BIKE_COLOURS[(slot * 7 + spot.capacity) % BIKE_COLOURS.length]));
     });
-    frames.count = wheels.count = n;
-    frames.instanceMatrix.needsUpdate = wheels.instanceMatrix.needsUpdate = true;
+    frames.count = wheels.count = metals.count = n;
+    for (const im of [frames, wheels, metals]) im.instanceMatrix.needsUpdate = true;
     if (frames.instanceColor) frames.instanceColor.needsUpdate = true;
   }
 
@@ -569,7 +657,8 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
     if (pinch && pointers.size === 2) {
       const now = twoState();
       if (pinch.dist) zoomBy(now.dist / pinch.dist);
-      setCam({ yaw: cam.yaw - (now.angle - pinch.angle), pitch: cam.pitch + (now.mid[1] - pinch.mid[1]) * 0.004 });
+      // The map turns with the fingers: turning them clockwise turns the map clockwise.
+      setCam({ yaw: cam.yaw + (now.angle - pinch.angle), pitch: cam.pitch + (now.mid[1] - pinch.mid[1]) * 0.004 });
       panBy(now.mid[0] - pinch.mid[0], 0);
       pinch = now;
     } else if (drag && e.pointerId === drag.id) {
@@ -675,12 +764,21 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
     reset() { moved = false; back = null; animateTo(homeCam(), 600); },
     zoom(f) { zoomBy(f); },
     relayout() { if (!moved && !anim) { Object.assign(cam, homeCam()); request(); } },
-    // Flies down to a rack, then calls done (which opens the rack's full-screen page).
-    focus(id, done) {
+    // A camera looking straight down at the same area as the flat 2D map shows, so 2D can turn into 3D seamlessly.
+    topDown(view) {
+      return { tx: view.x + view.w / 2, tz: view.y + view.h / 2, dist: view.h / 2 / Math.tan((FOV * Math.PI) / 360), yaw: 0, pitch: Math.PI / 2 - 0.01 };
+    },
+    // Flies down to a rack over `ms`, then calls done (which opens the rack's full-screen page).
+    // `from` starts the flight from a given camera, e.g. topDown() of the 2D map.
+    focus(id, done, { from = null, ms = 2000 } = {}) {
       const node = racks.get(id);
       if (!node || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
       const r = node.spot.rack, [cx, cy] = center(r);
-      back = { cam: { ...cam }, moved };
+      if (from) {
+        anim = null;
+        Object.assign(cam, from);
+      }
+      back = { cam: { ...cam }, moved: from ? true : moved };
       moved = true;
       const [W, H] = size(), pitch = 0.72;
       // On a portrait phone the rack must also fit the narrow width.
@@ -692,15 +790,16 @@ export async function createMap3D(container, onSelect, { insets = () => ({ top: 
         return Math.min(...near.map(([bx, by]) => Math.hypot(bx - gx, by - gy)));
       };
       const yaw = [-0.3, Math.PI / 2 - 0.3, Math.PI - 0.3, -Math.PI / 2 - 0.3].reduce((a, b) => (score(b) > score(a) + 4 ? b : a));
-      animateTo({ tx: cx, tz: cy, dist, pitch, yaw }, 1000, done);
+      animateTo({ tx: cx, tz: cy, dist, pitch, yaw }, ms, done);
+      request();
     },
-    // Back to where the camera was before focus().
-    unfocus() {
-      if (!back) return;
+    // Back to where the camera was before focus(), then calls done.
+    unfocus(done) {
+      if (!back) return done?.();
       const { cam: to, moved: wasMoved } = back;
       back = null;
       moved = wasMoved;
-      animateTo(wasMoved ? to : homeCam(), 700);
+      animateTo(wasMoved ? to : homeCam(), 1000, done);
     },
     setTheme: applyTheme,
     render: request,

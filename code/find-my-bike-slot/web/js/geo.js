@@ -18,6 +18,13 @@ export function center(r) {
   const n = r.points.length;
   return [r.points.reduce((t, p) => t + p[0], 0) / n, r.points.reduce((t, p) => t + p[1], 0) / n];
 }
+// A natural-looking pond outline around an ellipse (x, y, rx, ry), scaled by k (e.g. 1.15 for the shore).
+export function pondOutline({ x, y, rx, ry }, k = 1, n = 40) {
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2, wobble = k * (1 + 0.09 * Math.sin(3 * a + 0.7) + 0.06 * Math.sin(5 * a + 2.1));
+    return [x + Math.cos(a) * rx * wobble, y + Math.sin(a) * ry * wobble];
+  });
+}
 const inside = ([x, y], r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 
 // A flat-earth approximation around the anchor; accurate to centimetres over a site this size.

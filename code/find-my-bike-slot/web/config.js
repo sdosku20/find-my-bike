@@ -14,45 +14,52 @@ export const ICE_SERVERS = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1
 export const SITE = {
   name: 'Company site',
   // The area the map shows when it opens (all racks fit in it); the rest can be explored by zooming and dragging.
-  view: { x: 0, y: 0, w: 136, h: 262 },
+  view: { x: 0, y: 0, w: 175, h: 216 },
   // Where one plan point sits in the real world. Placeholder: pick the main building's centre
   // in Google Maps (right-click → copy coordinates) and set lat/lng and bearing.
-  anchor: { x: 67, y: 42, lat: 47.5596, lng: 7.5886 },
+  anchor: { x: 67, y: 34, lat: 47.5596, lng: 7.5886 },
   bearing: 0, // compass direction the top of the plan faces (0 = north, 90 = east)
   fence: { x: 13, y: 5, w: 118, h: 113 },
   // Areas you can walk around in; inside them directions join the nearest walkway.
-  grounds: [{ x: 13, y: 5, w: 118, h: 113 }, { x: 13, y: 134, w: 118, h: 66 }, { x: 13, y: 214, w: 118, h: 48 }],
+  grounds: [{ x: 13, y: 5, w: 118, h: 113 }, { x: 2, y: 134, w: 76, h: 80 }, { x: 91, y: 134, w: 82, h: 80 }, { x: 150, y: 74, w: 26, h: 20 }],
   // Buildings are rectangles (x, y, w, h) or outlines (points); `floors` sets their height in 3D.
   buildings: [
-    { label: 'Main building', x: 30, y: 31, w: 74, h: 23, floors: 3 },
+    { label: 'Main building', x: 30, y: 22, w: 74, h: 24, floors: 3 },
     { label: 'Lab', points: [[84, 70], [110, 68], [117, 83], [111, 100], [88, 102], [80, 86]], tone: 'alt', floors: 2 },
     // The garage has a glass roof in 3D, so the bikes inside can be seen.
-    { label: 'Bike garage', x: 99, y: 150, w: 26, h: 35, labelAt: [112, 155.6], floors: 1, glassRoof: true },
-    { label: 'Clubhouse', x: 60, y: 218, w: 22, h: 14, floors: 1, tone: 'alt' },
+    { label: 'Bike garage', x: 100, y: 188, w: 35, h: 24, labelAt: [117.5, 193], floors: 1, glassRoof: true },
+    { label: 'Clubhouse', x: 136, y: 140, w: 22, h: 14, floors: 1, tone: 'alt' },
   ],
   // The first gate is the main one: Google Maps directions lead there. `node` is its walkway point,
   // `street` where its path meets the road.
   gates: [
     { label: 'Main gate', x: 72, y: 118, node: 'gate', street: [72, 121] },
     { label: 'Side gate', x: 13, y: 96, node: 'wgate', street: [4.5, 96] },
+    { label: 'East gate', x: 131, y: 80, node: 'egate', street: [140, 80] },
   ],
+  // Three blocks on top, the park and the tennis club in the middle (split by Park road, which meets the main
+  // road at a T-junction), and three neighbourhood blocks south of Park lane. Side road and East road stop at
+  // the main road and start again south of Park lane.
   streets: [
     { x: -400, y: 121, w: 960, h: 9, label: 'Main road', labelAt: [14, 126.6] },
-    { x: -400, y: 203, w: 960, h: 9, label: 'Park lane', labelAt: [14, 208.6] },
-    { x: 0, y: -400, w: 9, h: 960, label: 'Side road', labelAt: [5.6, 60], vertical: true },
-    { x: 140, y: -400, w: 9, h: 960, label: 'East road', labelAt: [145.6, 60], vertical: true },
+    { x: -400, y: 216, w: 960, h: 9, label: 'Park lane', labelAt: [14, 221.6] },
+    { x: 0, y: -400, w: 9, h: 521, label: 'Side road', labelAt: [5.6, 60], vertical: true },
+    { x: 0, y: 225, w: 9, h: 400, label: 'Side road', labelAt: [5.6, 252], vertical: true },
+    { x: 140, y: -400, w: 9, h: 521, label: 'East road', labelAt: [145.6, 60], vertical: true },
+    { x: 140, y: 225, w: 9, h: 400, label: 'East road', labelAt: [145.6, 252], vertical: true },
+    { x: 80, y: 130, w: 9, h: 86, label: 'Park road', labelAt: [85.6, 196], vertical: true },
   ],
-  crossings: [{ x: 66, y: 121, w: 12, h: 9 }, { x: 50, y: 203, w: 12, h: 9 }],
+  crossings: [{ x: 66, y: 121, w: 12, h: 9 }, { x: 140, y: 75, w: 9, h: 10, vertical: true }, { x: 80, y: 146, w: 9, h: 10, vertical: true }],
   plaza: { x: 54, y: 85, r: 8 },
-  park: { x: 13, y: 137, w: 80, h: 61, label: 'City park', labelAt: [76, 195], pond: { x: 56, y: 170, rx: 11, ry: 7 } },
-  tennis: { x: 13, y: 215, w: 72, h: 45, label: 'Tennis club', courts: [{ x: 16, y: 218, w: 36, h: 18 }, { x: 16, y: 240, w: 36, h: 18 }] },
+  park: { x: 6, y: 137, w: 70, h: 76, label: 'City park', labelAt: [62, 210.5], pond: { x: 40, y: 178, rx: 13, ry: 8 } },
+  tennis: { x: 93, y: 137, w: 78, h: 46, label: 'Tennis club', courts: [{ x: 96, y: 140, w: 36, h: 18 }, { x: 96, y: 162, w: 36, h: 18 }] },
   // Trees: [x, y, radius, kind]; kind 'pine' draws a conifer, anything else a round tree.
   trees: [[30, 71, 2.8], [34, 81, 2.4, 'pine'], [70, 80, 2.6], [70, 93, 2.6, 'pine'], [72, 102, 2.2], [128, 72, 2.2, 'pine'],
-    [128, 92, 2.2], [44, 146, 2.6, 'pine'], [84, 150, 2.4], [88, 163, 2.2, 'pine'], [83, 172, 2.2], [87, 189, 2.6],
-    [66, 195, 2.2, 'pine'], [30, 194, 2.2], [16, 186, 2.2, 'pine'], [24, 174, 2], [134, 150, 2.2, 'pine'], [134, 166, 2.2],
-    [134, 182, 2.2, 'pine'], [110, 190, 2.4], [121, 193, 2, 'pine'], [104, 140, 2.4], [114, 141, 2, 'pine'], [124, 140, 2.2],
-    [88, 236, 2.4, 'pine'], [84, 250, 2.2], [128, 252, 2.4, 'pine']],
-  // Surroundings outside the plan: houses (1 or 2 floors, rectangles or outlines) and trees, kept off the streets.
+    [128, 92, 2.2], [40, 18, 2], [94, 18, 2.2, 'pine'], [112, 30, 2.4], [114, 42, 2.2, 'pine'], [176, 86, 2.2],
+    [30, 145, 2.4], [60, 160, 2.6], [61, 181, 2.2, 'pine'], [12, 175, 2.4, 'pine'], [12, 200, 2.2], [30, 208, 2],
+    [72, 206, 2.4, 'pine'], [50, 140, 2], [165, 160, 2.2, 'pine'], [166, 177, 2.2], [145, 200, 2.4], [160, 206, 2.2, 'pine']],
+  // Surroundings outside the plan: houses (1 or 2 floors, rectangles or outlines; tone 'grey' for the blocks
+  // south of Park lane) and trees, kept off the streets.
   around: {
     houses: [
       { x: -46, y: 8, w: 30, h: 22, floors: 2 },
@@ -60,50 +67,52 @@ export const SITE = {
       { x: -44, y: 88, w: 26, h: 26, floors: 2 },
       { points: [[-50, 136], [-16, 136], [-16, 170], [-26, 170], [-26, 150], [-40, 150], [-40, 170], [-50, 170]], floors: 1 },
       { x: -44, y: 178, w: 28, h: 20, floors: 1 },
-      { x: -48, y: 218, w: 34, h: 22, floors: 2 },
       { x: 156, y: 6, w: 34, h: 26, floors: 2 },
-      { points: [[154, 42], [190, 42], [190, 60], [172, 60], [172, 80], [154, 80]], floors: 1 },
-      { x: 158, y: 90, w: 30, h: 24, floors: 1 },
-      { points: [[154, 136], [194, 136], [194, 150], [180, 150], [180, 172], [168, 172], [168, 150], [154, 150]], floors: 2 },
-      { x: 158, y: 180, w: 30, h: 18, floors: 1 },
-      { x: 156, y: 220, w: 34, h: 26, floors: 2 },
+      { points: [[154, 42], [190, 42], [190, 58], [172, 58], [172, 72], [154, 72]], floors: 1 },
+      { x: 158, y: 96, w: 30, h: 22, floors: 1 },
+      { x: 178, y: 138, w: 28, h: 22, floors: 2 },
+      { points: [[178, 170], [206, 170], [206, 186], [192, 186], [192, 210], [178, 210]], floors: 1 },
       { x: 16, y: -34, w: 40, h: 26, floors: 2 },
       { points: [[66, -38], [104, -38], [104, -22], [86, -22], [86, -8], [66, -8]], floors: 1 },
       { x: 112, y: -32, w: 24, h: 22, floors: 1 },
-      { x: 90, y: 218, w: 36, h: 16, floors: 2 },
-      { points: [[90, 240], [128, 240], [128, 258], [110, 258], [110, 250], [90, 250]], floors: 1 },
+      { x: -46, y: 232, w: 32, h: 24, floors: 2, tone: 'grey' },
+      { x: 18, y: 232, w: 38, h: 22, floors: 2, tone: 'grey' },
+      { points: [[64, 232], [100, 232], [100, 250], [84, 250], [84, 268], [64, 268]], floors: 1, tone: 'grey' },
+      { x: 108, y: 234, w: 26, h: 30, floors: 2, tone: 'grey' },
+      { x: 20, y: 260, w: 30, h: 14, floors: 1, tone: 'grey' },
+      { x: 156, y: 232, w: 34, h: 26, floors: 2, tone: 'grey' },
     ],
-    trees: [[-20, 56, 3], [-12, 98, 2.6, 'pine'], [-26, 128, 2.4], [164, 60, 3, 'pine'], [172, 100, 2.6], [206, 40, 3],
-      [6, -18, 2.8, 'pine'], [126, -14, 2.6], [-60, 0, 3, 'pine'], [-8, 196, 2.6], [152, 198, 2.4, 'pine'], [200, 120, 2.6],
-      [-30, 250, 2.6, 'pine'], [176, 256, 2.4]],
+    trees: [[-26, 68, 3], [-12, 98, 2.6, 'pine'], [-8, 112, 2.4], [194, 66, 3, 'pine'], [196, 104, 2.6], [206, 40, 3],
+      [-10, -18, 2.8, 'pine'], [126, -4, 2.4], [-60, 0, 3, 'pine'], [-8, 196, 2.6], [152, 198, 2.4, 'pine'], [214, 150, 2.6],
+      [-30, 266, 2.6, 'pine'], [196, 268, 2.4], [56, 262, 2.2], [104, 270, 2.2, 'pine'], [-6, 150, 2.4], [-8, 186, 2.2, 'pine']],
   },
   // Walkways used for directions: named points and the straight paths between them.
   nodes: {
     nw: [21, 13], n: [67, 13], ne: [123, 13], en: [123, 42],
     wm: [21, 62], c: [72, 62], em: [123, 62], wg: [21, 96],
     sw: [21, 110], gs: [43, 110], s: [72, 110], se: [123, 110], p: [54, 85],
-    gate: [72, 118], wgate: [13, 96], xs: [72, 134], ssn: [112, 134], gn: [128, 134], ge: [128, 158],
-    pe: [70, 142], pa: [54, 150], pb: [40, 164], pc: [32, 182], pf: [54, 192], pd: [76, 180],
-    pl1: [56, 199], pl2: [56, 215], tsr: [56, 246],
+    ee: [123, 80], egate: [131, 80], ex: [152, 80], erk: [162, 80],
+    gate: [72, 118], wgate: [13, 96], xs: [72, 134],
+    pe: [70, 142], pa: [48, 150], pb: [22, 166], pc: [18, 190], pf: [42, 206], pd: [66, 194],
+    pm: [78, 151], tw: [92, 151], t1: [92, 184], ge: [118, 184], t2: [134, 184], tsr: [134, 168],
   },
   paths: [
     ['nw', 'n'], ['n', 'ne'], ['nw', 'wm'], ['ne', 'en'], ['en', 'em'], ['wm', 'c'], ['c', 'em'],
-    ['wm', 'wg'], ['wg', 'sw'], ['em', 'se'], ['sw', 'gs'], ['gs', 's'], ['s', 'se'],
+    ['wm', 'wg'], ['wg', 'sw'], ['em', 'ee'], ['ee', 'se'], ['ee', 'egate'], ['egate', 'ex'], ['ex', 'erk'], ['sw', 'gs'], ['gs', 's'], ['s', 'se'],
     ['s', 'gate'], ['wg', 'wgate'], ['wg', 'p'], ['p', 'c'], ['p', 's'],
-    ['gate', 'xs'], ['xs', 'ssn'], ['ssn', 'gn'], ['gn', 'ge'],
-    ['xs', 'pe'], ['pe', 'pa'], ['pa', 'pb'], ['pb', 'pc'], ['pc', 'pf'], ['pf', 'pd'], ['pd', 'pe'],
-    ['pf', 'pl1'], ['pl1', 'pl2'], ['pl2', 'tsr'],
+    ['gate', 'xs'], ['xs', 'pe'], ['pe', 'pa'], ['pa', 'pb'], ['pb', 'pc'], ['pc', 'pf'], ['pf', 'pd'], ['pd', 'pe'],
+    ['pe', 'pm'], ['pm', 'tw'], ['tw', 't1'], ['t1', 'ge'], ['ge', 't2'], ['t2', 'tsr'],
   ],
 };
 
 // Parking areas. `id` matches a row in the Supabase `spots` table, `access` is the walkway
 // point directions lead to, and `camera: true` marks the rack with a live camera.
-// `roof: true` draws a shelter over the rack in 3D.
+// `roof` draws a shelter in 3D: curved (a cantilever roof rising from posts on the `back` side) or flat.
 export const SPOTS = [
-  { id: 'north', name: 'North rack', rack: { x: 42, y: 18, w: 50, h: 9 }, access: 'n', capacity: 20, camera: true, roof: true },
-  { id: 'east', name: 'East rack', rack: { x: 108, y: 28, w: 11, h: 28 }, access: 'en', capacity: 16, roof: true },
-  { id: 'gate', name: 'Gate rack', rack: { x: 28, y: 97.5, w: 30, h: 8 }, access: 'gs', capacity: 10 },
-  { id: 'west', name: 'West rack', rack: { x: 18, y: 143, w: 12, h: 24 }, access: 'pb', capacity: 16 },
-  { id: 'south', name: 'South rack', rack: { x: 60, y: 242, w: 24, h: 8 }, access: 'tsr', capacity: 20, roof: true },
-  { id: 'garage', name: 'Garage rack', rack: { x: 105, y: 161, w: 14, h: 21 }, access: 'ge', capacity: 30 },
+  { id: 'north', name: 'North rack', rack: { x: 53.5, y: 50, w: 27, h: 6 }, access: 'c', capacity: 20, camera: true, roof: { curved: true, back: 'n' } },
+  { id: 'east', name: 'East rack', rack: { x: 152, y: 83, w: 19.5, h: 7 }, access: 'erk', capacity: 12, roof: { curved: true, back: 's' } },
+  { id: 'gate', name: 'Gate rack', rack: { x: 32, y: 97.5, w: 22, h: 7 }, access: 'gs', capacity: 10 },
+  { id: 'west', name: 'West rack', rack: { x: 10, y: 142, w: 10.5, h: 19 }, access: 'pb', capacity: 16 },
+  { id: 'south', name: 'South rack', rack: { x: 136, y: 164, w: 24, h: 9 }, access: 'tsr', capacity: 20, roof: { curved: false } },
+  { id: 'garage', name: 'Garage rack', rack: { x: 106, y: 197, w: 23, h: 12 }, access: 'ge', capacity: 30 },
 ];

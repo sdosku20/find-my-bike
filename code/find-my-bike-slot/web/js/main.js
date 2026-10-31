@@ -73,9 +73,16 @@ const map = {
 if (params.has('debug')) window.__maps = { map2d, get map3d() { return map3d; } };
 
 // Tapping a rack on the map: the camera flies in, then the rack's photo or live view opens full screen.
+// In 2D the flat plan first turns into the 3D view seen from straight above (within 0.1 s), then the camera tilts
+// and flies down to the rack exactly as in 3D. If 3D cannot run, the flat map zooms in instead.
+let flight = false; // a 2D tap is flying in 3D
 function selectRack(id) {
   if (state.selected) return openSpot(id);
-  active().focus(id, () => openSpot(id));
+  if (mode === '3d' && map3d) return map3d.focus(id, () => openSpot(id));
+  if (!map3d) return map2d.focus(id, () => openSpot(id));
+  flight = true;
+  map3d.focus(id, () => openSpot(id), { from: map3d.topDown(map2d.getView()) });
+  $('map3d').classList.add('is-on');
 }
 
 // ---------- status ----------
@@ -411,7 +418,17 @@ function closeZone() {
   $('home').inert = false;
   document.body.classList.remove('zone-open');
   renderAll();
-  active().unfocus();
+  if (flight) {
+    map3d.unfocus(() => {
+      flight = false;
+      if (mode !== '3d') {
+        $('map3d').classList.remove('is-on');
+        map3d.reset();
+      }
+    });
+  } else {
+    active().unfocus();
+  }
 }
 
 // ---------- navigation: #<rack id> opens a rack, so the phone's back button closes it ----------
@@ -630,31 +647,40 @@ function setTheme(theme, save) {
 // ---------- 2D / 3D ----------
 
 const MODE_KEY = 'bikeslot.mode';
+// The 3D view is built once, in the background soon after the page opens (or on the first switch to 3D).
+let loading3d = null;
+function ensure3d() {
+  loading3d ||= import('./map3d.js')
+    .then(({ createMap3D }) => createMap3D($('map3d'), selectRack, {
+      insets: mapInsets,
+      onRotate: deg => { if (mode === '3d' || flight) $('compass').style.setProperty('--rot', `${deg - SITE.bearing}deg`); },
+    }))
+    .then(made => {
+      map3d = made;
+      renderMap();
+      renderUser();
+      updateRoute();
+      return made;
+    })
+    .catch(() => null);
+  return loading3d;
+}
+
 async function setMode(next, save) {
   const button = $('mode');
   if (next === '3d' && !map3d) {
     button.disabled = true;
-    $('map3d').hidden = false;
-    try {
-      const { createMap3D } = await import('./map3d.js');
-      map3d = await createMap3D($('map3d'), selectRack, {
-        insets: mapInsets,
-        onRotate: deg => { if (mode === '3d') $('compass').style.setProperty('--rot', `${deg - SITE.bearing}deg`); },
-      });
-      renderMap();
-      renderUser();
-      updateRoute();
-    } catch (err) {
-      $('map3d').hidden = true;
-      button.disabled = false;
+    await ensure3d();
+    button.disabled = false;
+    if (!map3d) {
       toast('The 3D view could not start on this device.', 'info');
       return;
     }
-    button.disabled = false;
   }
+  if (next === '3d' && mode !== '3d' && !flight) map3d.reset();
   mode = next;
   const three = mode === '3d';
-  $('map3d').hidden = !three;
+  $('map3d').classList.toggle('is-on', three || flight);
   $('map').hidden = three;
   button.textContent = three ? '2D' : '3D';
   button.setAttribute('aria-label', three ? 'Show the flat map' : 'Show the map in 3D');
@@ -736,6 +762,7 @@ async function init() {
   else if (spots.has(open) && !spotFromHash()) history.replaceState(null, '', `#${open}`);
   show();
   setInterval(renderAll, 5000);
+  setTimeout(ensure3d, 1200);
 }
 
 init();

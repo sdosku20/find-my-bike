@@ -1,6 +1,6 @@
 // Bird's-eye site plan drawn as SVG in plan units (metres), with zoom and pan.
 import { SITE, SPOTS } from '../config.js';
-import { center } from './geo.js';
+import { center, pondOutline } from './geo.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 // Wi-Fi positions on laptops can be off by 50 m or more; a ring that large would cover half the plan.
@@ -45,11 +45,35 @@ function drawTree(g, [x, y, r, kind], far) {
   }
 }
 
+// The park pond: a sandy shore, water that gets deeper towards the middle, a few ripples, lily pads and reeds.
+function drawPond(svg, g, pond) {
+  const pts = k => pondOutline(pond, k).map(p => p.join(',')).join(' ');
+  const defs = el('defs', {}, svg);
+  const grad = el('radialGradient', { id: 'pond-depth', cx: '45%', cy: '42%', r: '60%' }, defs);
+  el('stop', { offset: '0%', class: 'm-water-deep' }, grad);
+  el('stop', { offset: '100%', class: 'm-water-edge' }, grad);
+  el('polygon', { points: pts(1.16), class: 'm-shore' }, g);
+  el('polygon', { points: pts(1), class: 'm-pond', fill: 'url(#pond-depth)' }, g);
+  const { x, y, rx, ry } = pond;
+  for (const [dx, dy, s] of [[-0.35, -0.2, 0.32], [0.2, 0.25, 0.26], [0.05, -0.45, 0.2]]) {
+    const cx = x + dx * rx, cy = y + dy * ry, w = s * rx;
+    el('path', { d: `M${cx - w} ${cy} Q${cx} ${cy - w * 0.35} ${cx + w} ${cy}`, class: 'm-ripple' }, g);
+  }
+  for (const [dx, dy, r] of [[0.55, -0.3, 1.1], [0.68, 0.05, 0.8], [-0.62, 0.35, 0.95], [-0.5, 0.52, 0.7]]) {
+    const cx = x + dx * rx, cy = y + dy * ry;
+    el('path', { d: `M${cx} ${cy} L${cx + r} ${cy - r * 0.3} A${r} ${r} 0 1 1 ${cx + r} ${cy + r * 0.3} Z`, class: 'm-lily' }, g);
+  }
+  for (const a of [2.6, 2.9, 3.2, 5.9, 6.15]) {
+    const bx = x + Math.cos(a) * rx * 1.08, by = y + Math.sin(a) * ry * 1.08;
+    el('path', { d: `M${bx} ${by} l-0.5 -1.6 M${bx} ${by} l0.2 -1.9 M${bx} ${by} l0.8 -1.4`, class: 'm-reed' }, g);
+  }
+}
+
 // A neighbouring house: one colour, any outline; two-storey houses cast a longer shadow.
 function drawHouse(g, h) {
   const d = h.floors > 1 ? 1.8 : 1;
   shape(g, h, 'm-shadow', d, d * 1.3);
-  shape(g, h, 'm-house');
+  shape(g, h, `m-house${h.tone ? ` is-${h.tone}` : ''}`);
 }
 
 // Tennis club: clay courts with white lines and the net across the middle.
@@ -67,7 +91,7 @@ function drawTennis(g, t) {
     el('line', { x1: cx - 6.4, y1: cy, x2: cx + 6.4, y2: cy }, lines);
     el('line', { x1: cx, y1: iy - 0.6, x2: cx, y2: iy + ih + 0.6, class: 'm-net' }, g);
   }
-  if (t.label) label(g, t.x + t.w / 2 + 12, t.y + t.h - 1.6, t.label.toUpperCase(), 'm-park-label');
+  if (t.label) label(g, t.x + t.w / 2 + 20, t.y + t.h - 1.6, t.label.toUpperCase(), 'm-park-label');
 }
 
 function drawGround(svg) {
@@ -87,7 +111,7 @@ function drawGround(svg) {
   if (SITE.park) {
     const { pond } = SITE.park;
     el('rect', { ...box(SITE.park), rx: 6, class: 'm-park' }, g);
-    if (pond) el('ellipse', { cx: pond.x, cy: pond.y, rx: pond.rx, ry: pond.ry, class: 'm-pond' }, g);
+    if (pond) drawPond(svg, g, pond);
   }
   if (SITE.tennis) drawTennis(g, SITE.tennis);
   const walk = el('g', { class: 'm-walk' }, g);
@@ -96,7 +120,8 @@ function drawGround(svg) {
   // Zebra crossings: stripes across the road where a walkway crosses it.
   for (const c of SITE.crossings || []) {
     el('rect', { ...box(c), class: 'm-street' }, g);
-    for (let x = c.x + 0.5; x < c.x + c.w; x += 2) el('rect', { x, y: c.y + 0.6, width: 1, height: c.h - 1.2, class: 'm-zebra' }, g);
+    if (c.vertical) for (let y = c.y + 0.5; y < c.y + c.h; y += 2) el('rect', { x: c.x + 0.6, y, width: c.w - 1.2, height: 1, class: 'm-zebra' }, g);
+    else for (let x = c.x + 0.5; x < c.x + c.w; x += 2) el('rect', { x, y: c.y + 0.6, width: 1, height: c.h - 1.2, class: 'm-zebra' }, g);
   }
   if (SITE.plaza) {
     const { x, y, r } = SITE.plaza;
@@ -371,6 +396,10 @@ export function createMap(svg, onSelect, { insets = () => ({ top: 0, right: 0, b
       moved = false;
       back = null;
       show(homeView());
+    },
+    // The area currently on screen, in plan metres.
+    getView() {
+      return { ...view };
     },
     // Zooms in on a rack, then calls done (which opens the rack's full-screen page).
     focus(id, done) {
