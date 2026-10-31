@@ -129,5 +129,45 @@ export const SNAPSHOTS = {
     "capacity": null,
     "bike_area_px2": 45000,
     "gaps": []
+  },
+  "garage": {
+    "photo": "photos/garage.jpg",
+    "taken_at": "2026-10-29T08:45:10",
+    "bikes": 22,
+    "free_estimate": 3,
+    "capacity": 25,
+    "bike_area_px2": 30000,
+    "gaps": [
+      {
+        "rank": 1,
+        "area_px2": 63657,
+        "pos": 0.49,
+        "fits": 2
+      },
+      {
+        "rank": 2,
+        "area_px2": 52418,
+        "pos": 0.63,
+        "fits": 1
+      },
+      {
+        "rank": 3,
+        "area_px2": 28410,
+        "pos": 0.76,
+        "fits": 0
+      },
+      {
+        "rank": 4,
+        "area_px2": 17158,
+        "pos": 0.2,
+        "fits": 0
+      },
+      {
+        "rank": 5,
+        "area_px2": 16251,
+        "pos": 0.29,
+        "fits": 0
+      }
+    ]
   }
 };

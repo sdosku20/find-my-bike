@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BikeFit · Original Gap Area Tool</title><style>
+:root{font-family:'Segoe UI',system-ui,sans-serif;color:#e5eee9;background:#111b18;font-synthesis:none}*{box-sizing:border-box}body{margin:0}header,main{max-width:1480px;margin:auto;padding:24px 30px}header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #33433c}.brand{font-size:12px;letter-spacing:3px;color:#8fb9a3}h1{font-size:26px;margin:8px 0 0;font-weight:600}.live-tag{color:#a9d5bd;border:1px solid #496b59;border-radius:30px;padding:9px 15px;font-size:13px}.live-tag:before{content:'●';color:#6bda9a;margin-right:9px}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}label{font-size:14px;color:#a9bdb0}select,button{font:inherit;border:1px solid #43564a;border-radius:8px;padding:11px 15px;color:#e4eee7;background:#23352b}select{min-width:260px;max-width:100%;flex:1}button{cursor:pointer;white-space:nowrap}button.primary{background:#a8dfb5;color:#183526;border-color:#a8dfb5;font-weight:600}button:disabled{opacity:.4;cursor:default}.layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px}.viewer{border:1px solid #384b3e;border-radius:12px;overflow:hidden;background:#070d0a;position:relative;min-height:470px;display:grid;place-items:center}.stage{position:relative;width:100%;line-height:0}.stage[hidden]{display:none}video{width:100%;height:auto;display:block}canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;pointer-events:none}.empty{text-align:center;color:#90aa98;padding:60px 24px;line-height:2}.empty[hidden]{display:none}.empty strong{display:block;color:#d8e9de;font-size:22px;font-weight:500;margin-bottom:10px}.sidebar{border:1px solid #384b3e;background:#19271f;border-radius:12px;padding:20px}.sidebar h2{font-size:17px;margin:0 0 6px}.hint{font-size:12px;color:#99b4a1;line-height:1.8;margin:0 0 16px}.rank{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid #334b3a;font-size:14px}.rank b{color:var(--rank);font-size:19px;margin-right:10px}.rank span:last-child{font-variant-numeric:tabular-nums}.pending{color:#88a691;font-size:13px;line-height:2;padding:20px 0}.statusbar{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;padding:15px 2px;font-size:13px;color:#a9c7b1;line-height:1.8}#status.error{color:#ffb6a4}#metrics{color:#8ba894}.footnote{font-size:12px;color:#7f9c88;line-height:1.8;margin-top:4px}@media(max-width:900px){header,main{padding:18px}h1{font-size:21px}.live-tag{display:none}.layout{grid-template-columns:1fr}.viewer{min-height:240px}.sidebar{padding:16px}.rank{padding:10px 0}.controls{gap:8px}select{min-width:180px}button{padding:10px 12px}}
+.share{margin-top:18px;padding-top:16px;border-top:1px solid #334b3a}.share h2{font-size:15px}.share .hint{margin:0 0 10px}#shareStatus.error{color:#ffb6a4}.check{display:flex;gap:8px;align-items:center;font-size:13px;margin:0 0 12px;cursor:pointer}.share-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.share button{padding:8px 12px;font-size:13px}.share a{color:#a8dfb5;font-size:13px}
+</style></head><body>
+<header><div><div class="brand">BIKEFIT / ORIGINAL AREA</div><h1>Find the five largest visible gap areas</h1></div><div class="live-tag">Live camera</div></header>
+<main><div class="controls"><button class="primary" id="toggle">Turn on camera</button><select id="devices" aria-label="Choose camera"><option value="">Choose camera (default)</option></select></div>
+<div class="layout"><div class="viewer"><div class="empty" id="empty"><strong>Turn on your camera to start</strong>Automatic bicycle segmentation<br>The five largest enclosed white areas are marked on the video.</div><div id="stage" class="stage" hidden><video id="video" autoplay muted playsinline></video><canvas id="scope" aria-label="Top five enclosed areas"></canvas></div></div>
+<aside class="sidebar"><h2>Top five gap areas</h2><p class="hint">Sorted by total enclosed white-pixel area<br>1 is the largest · Units: px²<br>Fewer regions are shown when fewer are found</p><div id="ranking" aria-live="polite"><div class="pending">Once the camera is on,<br>results update here automatically.</div></div>
+<div class="share"><h2>Online sharing</h2><p class="hint" id="shareStatus">Loading…</p><label class="check"><input type="checkbox" id="shareBlur"> Blur the shared camera image (privacy)</label><div class="share-row"><button id="calibrate" type="button">Gap 1 = one bike</button><a id="shareLink" target="_blank" rel="noopener" hidden>Open website</a></div><p class="hint" id="calibInfo"></p></div></aside></div>
+<div class="statusbar"><span id="status" role="status">Click “Turn on camera” and allow camera access to start.</span><span id="metrics"></span></div>
+<div class="footnote">The original area rule: connect adjacent upper silhouette points and all supported lower branch tips, then count white pixels enclosed by the lines and bicycle contours. Enclosed gaps within one silhouette are included. Line pixels and detected bicycle pixels are excluded. Regions smaller than 10 px² are omitted from the display. Areas are image pixels squared, not square metres or verified parking spaces. Aim at one complete row with the nearest wheels towards the bottom.</div></main>
+<script>window.SESSION_TOKEN='__SESSION_TOKEN__';</script><script src="/camera.js"></script>
+<script>
+/* Online sharing to the Find my Bike Slot website. Leave supabaseUrl empty to keep sharing off. */
+window.BIKESLOT_STATION={
+  supabaseUrl:'https://zfznmkgfbttkimjenoez.supabase.co',
+  supabaseAnonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpmem5ta2dmYnR0a2ltamVub2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzOTUzOTEsImV4cCI6MjEwODk3MTM5MX0.6QLP60DF3ESC3l9Ipk-ifJwe41d_m2rPS-MhDXPipt0',
+  stationEmail:'serxhio@gmail.com',      // the station user created in Supabase Auth
+  stationPassword:'Dosku0706!',
+  spotId:'north',       // row in the spots table that this camera watches
+  websiteUrl:''         // optional, e.g. https://find-my-bike-slot.vercel.app
+};
+</script>
+<script type="module">
+/* Publishes results as soon as they change (checked every second, with a heartbeat every 15 s), and the live view:
+   camera video straight to each viewer over WebRTC (Supabase only relays the handshake), plus 10 fps JPEG frames on a
+   separate channel that only viewers without a direct connection join. */
+const cfg=window.BIKESLOT_STATION||{}, $=id=>document.getElementById(id);
+const STATUS_MS=1000, HEARTBEAT_MS=15000, FRAME_MS=100, FRESH_MS=5000, PUBLISH_MAX_AGE_MS=15000;
+const MAX_PEERS=4, VIDEO_BITRATE=4000000, PEER_RETRY_MS=8000, DATA_LIMIT=220000;
+// Fallback frames aim for ~45 KB each on the wire (≈1.6 GB per hour per fallback viewer at 10 fps; Supabase free has 5 GB a month).
+const FRAME_BUDGET=45000, FRAME_STEPS=[[960,.75],[800,.7],[640,.65],[480,.6]];
+const ICE=cfg.iceServers||[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}];
+const store={get(k,f){try{const v=localStorage.getItem('bikeslot.'+k);return v===null?f:JSON.parse(v);}catch{return f;}},set(k,v){try{localStorage.setItem('bikeslot.'+k,JSON.stringify(v));}catch{}}};
+let bikeArea=store.get('bikeArea',20000), latest=null, estimates=[];
+const fits=area=>Math.floor(area/bikeArea), median=list=>[...list].sort((a,b)=>a-b)[list.length>>1];
+const fresh=maxAge=>latest&&Date.now()-latest.at<maxAge?latest:null;
+const marks=r=>r.ranking.map(g=>({rank:g.rank,x:+(g.target_xy[0]/r.width).toFixed(4),y:+(g.target_xy[1]/r.height).toFixed(4),color:g.color}));
+function say(text,error=false){$('shareStatus').textContent=text;$('shareStatus').classList.toggle('error',error);}
+function showCalibration(){$('calibInfo').textContent='One bike ≈ '+Math.round(bikeArea).toLocaleString('en-GB')+' px² of gap area';}
+$('shareBlur').checked=store.get('blur',false);
+$('shareBlur').onchange=()=>store.set('blur',$('shareBlur').checked);
+$('calibrate').onclick=()=>{const top=fresh(FRESH_MS)?.result.ranking[0];if(!top){say('Turn on the camera first, then press this while gap 1 fits exactly one bike.',true);return;}bikeArea=top.area_px2;store.set('bikeArea',bikeArea);estimates=[];showCalibration();};
+if(cfg.websiteUrl){$('shareLink').href=cfg.websiteUrl;$('shareLink').hidden=false;}
+showCalibration();
+
+const peers=new Map(); // viewer id -> {pc, sender, data, track, pending, created}
+let channel=null, viewerIds=[];
+const hdViewers=()=>viewerIds.filter(id=>peers.get(id)?.pc.connectionState==='connected').length;
+
+// Track for the video connections: the camera itself, or a blurred copy while privacy blur is on.
+const blurCanvas=document.createElement('canvas'), bctx=blurCanvas.getContext('2d');
+let blurTrack=null, blurLoop=0;
+function sharedTrack(){
+  const video=$('video'), cam=video.srcObject?.getVideoTracks()[0];
+  if(!cam||cam.readyState!=='live'||!$('shareBlur').checked){cancelAnimationFrame(blurLoop);blurLoop=0;}
+  if(!cam||cam.readyState!=='live')return null;
+  cam.contentHint='detail';
+  if(!$('shareBlur').checked)return cam;
+  if(!blurTrack){blurTrack=blurCanvas.captureStream(25).getVideoTracks()[0];blurTrack.contentHint='detail';}
+  if(!blurLoop){const draw=()=>{blurLoop=requestAnimationFrame(draw);if(!video.videoWidth)return;const w=Math.min(1280,video.videoWidth),h=Math.round(video.videoHeight*w/video.videoWidth);if(blurCanvas.width!==w)blurCanvas.width=w;if(blurCanvas.height!==h)blurCanvas.height=h;bctx.filter='blur('+Math.round(w/160)+'px)';bctx.drawImage(video,0,0,w,h);};draw();}
+  return blurTrack;
+}
+async function syncTrack(peer){const track=sharedTrack();if(peer.track!==track){peer.track=track;await peer.sender.replaceTrack(track);}}
+
+// Gap shapes and numbers travel next to the video on a data channel, so they stay sharp.
+let overlayMessage='', overlayLive=false, overlayBlur=null;
+function shareOverlay(){
+  const current=fresh(FRESH_MS), blurred=$('shareBlur').checked, r=current?.result;
+  let png=r?r.overlay_base64:null;
+  if(png&&png.length>DATA_LIMIT){const c=document.createElement('canvas');c.width=Math.round(r.width/2);c.height=Math.round(r.height/2);c.getContext('2d').drawImage(current.overlay,0,0,c.width,c.height);png=c.toDataURL('image/png').split(',')[1];}
+  overlayMessage=JSON.stringify({type:'overlay',png:png&&png.length<=DATA_LIMIT?png:null,marks:r?marks(r):[],blurred});
+  overlayLive=Boolean(r);overlayBlur=blurred;
+  peers.forEach(sendOverlay);
+}
+function sendOverlay(peer){if(peer.data.readyState==='open'){try{peer.data.send(overlayMessage);}catch{}}}
+window.addEventListener('bikefit:result',e=>{latest={...e.detail,at:Date.now()};estimates.push(latest.result.ranking.reduce((n,g)=>n+fits(g.area_px2),0));if(estimates.length>9)estimates.shift();shareOverlay();});
+
+function signal(event,payload){channel?.send({type:'broadcast',event,payload:{...payload,from:'station'}});}
+function closePeer(id){const peer=peers.get(id);if(!peer)return;peers.delete(id);peer.pc.close();}
+async function offerTo(id){
+  const old=peers.get(id);
+  if(old&&(old.pc.connectionState==='connected'||Date.now()-old.created<PEER_RETRY_MS))return;
+  closePeer(id);
+  // Connections that never came up (viewer closed the page mid-handshake) must not use up the free places.
+  peers.forEach((p,pid)=>{if(p.pc.connectionState!=='connected'&&Date.now()-p.created>PEER_RETRY_MS)closePeer(pid);});
+  if(peers.size>=MAX_PEERS)return; // further viewers get JPEG frames
+  const pc=new RTCPeerConnection({iceServers:ICE});
+  const {sender}=pc.addTransceiver('video',{direction:'sendonly',sendEncodings:[{maxBitrate:VIDEO_BITRATE}]});
+  const peer={pc,sender,data:pc.createDataChannel('overlay'),track:null,pending:[],created:Date.now()};
+  peers.set(id,peer);
+  pc.onicecandidate=e=>{if(e.candidate)signal('ice',{to:id,candidate:e.candidate.toJSON()});};
+  pc.onconnectionstatechange=()=>{if(['failed','closed'].includes(pc.connectionState)&&peers.get(id)===peer)closePeer(id);};
+  peer.data.onopen=()=>sendOverlay(peer);
+  await syncTrack(peer);
+  await pc.setLocalDescription(await pc.createOffer());
+  signal('offer',{to:id,sdp:pc.localDescription.toJSON()});
+}
+async function onAnswer({payload}){
+  const peer=peers.get(payload?.from);
+  if(!peer||peer.pc.signalingState!=='have-local-offer')return;
+  await peer.pc.setRemoteDescription(payload.sdp);
+  for(const c of peer.pending.splice(0))peer.pc.addIceCandidate(c).catch(()=>{});
+}
+function onIce({payload}){
+  const peer=payload?.to==='station'&&payload.candidate?peers.get(payload.from):null;
+  if(!peer)return;
+  if(peer.pc.remoteDescription)peer.pc.addIceCandidate(payload.candidate).catch(()=>{});else peer.pending.push(payload.candidate);
+}
+
+if(!cfg.supabaseUrl||!cfg.supabaseAnonKey)say('Sharing is off. Add your Supabase details to BIKESLOT_STATION in tool/app.html to publish results to the website.');
+else start().catch(e=>say('Sharing stopped: '+(e.message||e),true));
+async function start(){
+  say('Connecting to Supabase…');
+  let createClient;
+  try{({createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.101.0/+esm'));}
+  catch{throw Error('could not load the Supabase library. Check the internet connection.');}
+  const sb=createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+  const {error}=await sb.auth.signInWithPassword({email:cfg.stationEmail,password:cfg.stationPassword});
+  if(error)throw Error('station sign-in failed ('+error.message+').');
+  // Keep the screen awake while sharing: when the computer dims and sleeps, the camera stops and the website loses the live view.
+  let wakeLock=null;
+  const keepAwake=async()=>{if(wakeLock||document.visibilityState!=='visible'||!navigator.wakeLock)return;try{wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}catch{}};
+  document.addEventListener('visibilitychange',keepAwake);setInterval(keepAwake,10000);keepAwake();
+  let sentAt=0, sentKey='', problem='', publishing=false, frameViewers=0, frames=null, joinedAt=0;
+  // The live view travels on two Realtime channels. Status updates are plain HTTP and keep working when the Realtime
+  // connection drops (expired sign-in, sleep, network change, background tab), so the channels are checked every
+  // 10 s and rebuilt when they are not joined, and refreshed every 20 minutes in case one died silently.
+  sb.auth.onAuthStateChange((event,session)=>{if(session?.access_token)sb.realtime?.setAuth?.(session.access_token);});
+  function join(){
+    if(channel)sb.removeChannel(channel);
+    if(frames)sb.removeChannel(frames);
+    viewerIds=[];frameViewers=0;joinedAt=Date.now();
+    const f=frames=sb.channel('live-'+cfg.spotId+'-frames',{config:{broadcast:{self:false}}});
+    f.on('presence',{event:'sync'},()=>{if(f===frames)frameViewers=Object.keys(f.presenceState()).length;}).subscribe();
+    const c=channel=sb.channel('live-'+cfg.spotId,{config:{broadcast:{self:false}}});
+    c.on('presence',{event:'sync'},()=>{if(c!==channel)return;viewerIds=Object.keys(c.presenceState());peers.forEach((peer,id)=>{if(!viewerIds.includes(id)&&Date.now()-peer.created>PEER_RETRY_MS)closePeer(id);});})
+      .on('broadcast',{event:'hello'},({payload})=>{if(payload?.from)offerTo(payload.from).catch(()=>closePeer(payload.from));})
+      .on('broadcast',{event:'answer'},m=>onAnswer(m).catch(()=>closePeer(m.payload?.from)))
+      .on('broadcast',{event:'ice'},onIce)
+      .subscribe();
+  }
+  const linkUp=()=>channel?.state==='joined'&&frames?.state==='joined';
+  join();
+  setInterval(()=>{const age=Date.now()-joinedAt;if((!linkUp()&&age>15000)||age>20*60000)join();},10000);
+  function report(){
+    if(problem)return say(problem,true);
+    if(!fresh(FRESH_MS))return say('Connected. Turn on the camera to publish results.');
+    if(!linkUp())return say('Publishing to "'+cfg.spotId+'" · live view link reconnecting…',true);
+    const n=viewerIds.length;
+    say('Publishing to "'+cfg.spotId+'"'+(sentAt?' · last update '+Math.round((Date.now()-sentAt)/1000)+' s ago':'')+' · '+n+' live viewer'+(n===1?'':'s')+(n?' ('+hdViewers()+' in HD)':''));
+  }
+  async function publishStatus(){
+    const r=fresh(PUBLISH_MAX_AGE_MS)?.result;
+    if(!r)return;
+    const gaps=r.ranking.map(g=>({rank:g.rank,area_px2:g.area_px2,pos:+(g.target_xy[0]/r.width).toFixed(2),fits:fits(g.area_px2)}));
+    const free=median(estimates);
+    // Write only when something visitors see has changed (free slots, bikes, gap sizes or sides), plus the heartbeat.
+    const key=JSON.stringify([free,r.instances,gaps.map(g=>[g.fits,Math.round(g.pos*3)])]);
+    if(key===sentKey&&Date.now()-sentAt<HEARTBEAT_MS)return;
+    const {data,error}=await sb.from('spots').update({free_estimate:free,bikes:r.instances,gaps,source:'camera',updated_at:new Date().toISOString()}).eq('id',cfg.spotId).select('id');
+    if(error)problem='Could not update the website: '+error.message;
+    else if(!data.length)problem='Not allowed to update spot "'+cfg.spotId+'". Check the spot id and that the station user is marked as a station (see supabase/schema.sql).';
+    else{problem='';sentAt=Date.now();sentKey=key;}
+  }
+  setInterval(()=>{
+    if(publishing)return;
+    publishing=true;
+    publishStatus().catch(e=>{problem='Could not update the website: '+e.message;}).finally(()=>{publishing=false;report();});
+  },STATUS_MS);
+  // Follow camera restarts and the blur box on every video connection; clear the overlay when results go stale.
+  setInterval(()=>{
+    peers.forEach(peer=>syncTrack(peer).catch(()=>{}));
+    if((overlayLive&&!fresh(FRESH_MS))||overlayBlur!==$('shareBlur').checked)shareOverlay();
+  },1000);
+  // JPEG fallback at 10 fps, sent only while someone is on the frames channel. The picture size steps down
+  // when a scene compresses badly and back up when there is room, keeping frames near FRAME_BUDGET.
+  const frame=document.createElement('canvas'), fctx=frame.getContext('2d');
+  let step=1;
+  setInterval(()=>{
+    const video=$('video');
+    if(!frameViewers||!video.srcObject||video.readyState<2||!video.videoWidth)return;
+    const [width,quality]=FRAME_STEPS[step], blurred=$('shareBlur').checked, current=fresh(FRESH_MS);
+    const w=Math.min(width,video.videoWidth), h=Math.round(video.videoHeight*w/video.videoWidth);
+    frame.width=w;frame.height=h;
+    fctx.filter=blurred?'blur('+Math.max(2,Math.round(w/160))+'px)':'none';
+    fctx.drawImage(video,0,0,w,h);
+    fctx.filter='none';
+    if(current)fctx.drawImage(current.overlay,0,0,w,h);
+    const jpg=frame.toDataURL('image/jpeg',quality).split(',')[1];
+    if(jpg.length>FRAME_BUDGET){step=Math.min(step+1,FRAME_STEPS.length-1);if(jpg.length>FRAME_BUDGET*1.5)return;}
+    else if(jpg.length<FRAME_BUDGET*.6&&step>0)step--;
+    frames.send({type:'broadcast',event:'frame',payload:{jpg,w,h,marks:current?marks(current.result):[],blurred}});
+  },FRAME_MS);
+  report();
+}
+</script></body></html>

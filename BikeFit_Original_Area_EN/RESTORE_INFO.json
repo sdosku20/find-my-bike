@@ -1,0 +1,16 @@
+{
+  "engine": "original_closed_white_area_v1",
+  "app": "bikefit_original_area_en_v1",
+  "ranking_metric": "original_white_area_px2_descending",
+  "helper_sources": [
+    "semantic_evidence",
+    "access_paths",
+    "line_closed_white_areas",
+    "white_gap_areas",
+    "black_shadow_center_distance",
+    "recalculate_leg_perspective",
+    "black_block_distance",
+    "leg_boundary_lines"
+  ],
+  "model_sha256": "5a0d74d3b79fd0d857b06bdedf68a92e77791fb232813f0645bfd0c07e562a84"
+}

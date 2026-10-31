@@ -12,10 +12,11 @@ Camera ─▶ Jetson Nano: BikeFit station page (detects gaps between bikes)
         Website on Vercel (this folder) ─▶ any phone or computer browser
 ```
 
-- `web/`: the website. Plain HTML, CSS and JavaScript with no build step. On a phone it shows the total, the
-  plan and the rack list, one below the other; opening a rack gives the picture the whole width, with the free
-  count and the gaps (largest first) underneath. From 900 px wide (laptops) the rack list stays on the left and
-  the plan or the open rack fills the rest. Fonts (Figtree, IBM Plex Mono, SIL Open Font License) are in `web/fonts/`.
+- `web/`: the website. Plain HTML, CSS and JavaScript with no build step. The map fills the screen and can be
+  zoomed and dragged (pinch, mouse wheel, double-click, or the buttons on a laptop); the free-spot total sits
+  top left and the light/dark switch top right. Opening a rack shows its live view or photo as large as possible,
+  with the free count and the gaps (largest first) underneath. Fonts (Figtree, IBM Plex Mono, SIL Open Font
+  License) are in `web/fonts/`.
 - `supabase/schema.sql`: the database table and access rules.
 - The station changes live in `BikeFit_Original_Area_EN/tool/app.html` (the "Online sharing" box) and one
   line in `tool/camera.js`. The Python backend is unchanged.

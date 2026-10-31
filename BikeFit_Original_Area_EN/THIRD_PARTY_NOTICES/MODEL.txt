@@ -1,0 +1,3 @@
+YOLOv8s-seg ONNX model, reused from the existing BikeFit project.
+Not newly trained or fine-tuned. Upstream: https://github.com/ultralytics/ultralytics
+License reference: Ultralytics-AGPL-3.0.txt. Model SHA-256: 5a0d74d3b79fd0d857b06bdedf68a92e77791fb232813f0645bfd0c07e562a84

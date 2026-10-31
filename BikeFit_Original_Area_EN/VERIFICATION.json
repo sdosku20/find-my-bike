@@ -1,0 +1,30 @@
+{
+  "engine": "original_closed_white_area_v1",
+  "english_interface_and_errors": true,
+  "source_helpers_unchanged": true,
+  "pure_total_area_ranking": true,
+  "geometry_tests": ".........\n----------------------------------------------------------------------\nRan 9 tests in 0.086s\n\nOK",
+  "submitted_photo": {
+    "label": "source_bundle",
+    "health": {
+      "ok": true,
+      "app": "bikefit_original_area_en_v1",
+      "engine": "original_closed_white_area_v1"
+    },
+    "instances": 18,
+    "displayed": 5,
+    "areas_px2": [
+      15660,
+      14628,
+      11232,
+      9641,
+      8062
+    ],
+    "offline_live_overlay_identical": true,
+    "blank_clears_results": true,
+    "invalid_frame_english_400": true,
+    "wrong_token_english_403": true,
+    "launcher_reuses_server": true
+  },
+  "actual_hardware_camera_tested": false
+}

@@ -32,8 +32,8 @@ for (const [id, snap] of Object.entries(SNAPSHOTS)) {
   });
 }
 const state = {
-  sb: null, conn: 'connecting', selected: null, target: null, user: null, heading: null, watchId: null,
-  compass: false, closeLive: null, pushed: false, homeScroll: 0, toMap: false,
+  sb: null, selected: null, target: null, user: null, heading: null, watchId: null,
+  compass: false, closeLive: null, pushed: false,
 };
 
 // ?demo=off puts the plan back at the real site after "Demo here" moved it.
@@ -42,7 +42,19 @@ if (params.get('demo') === 'off') resetSite();
 const sim = (params.get('sim') || '').split(',').map(Number);
 if (sim.length === 2 && sim.every(Number.isFinite)) state.user = { plan: sim, accuracy: 3, simulated: true };
 
-const map = createMap($('map'), openSpot);
+// On a phone the opening map view keeps the site clear of the floating panels at the top and bottom.
+function mapInsets() {
+  if (matchMedia('(min-width: 900px)').matches) return { top: 16, right: 16, bottom: 16, left: 16 };
+  const box = $('home').getBoundingClientRect();
+  const dock = $('dock').getBoundingClientRect(), controls = document.querySelector('.controls').getBoundingClientRect();
+  return {
+    top: $('total').getBoundingClientRect().bottom - box.top + 8,
+    right: 8,
+    bottom: box.bottom - Math.min(dock.height ? dock.top : box.bottom, controls.top) + 8,
+    left: 8,
+  };
+}
+const map = createMap($('map'), openSpot, { insets: mapInsets });
 
 // ---------- status ----------
 
@@ -156,25 +168,12 @@ function walkTo(s) {
 
 // ---------- rendering ----------
 
-function renderStatus() {
-  const cam = [...spots.values()].find(s => s.has_camera);
-  let kind = 'ok', text = 'Live';
-  if (state.conn === 'sample') [kind, text] = ['sample', 'Sample data'];
-  else if (state.conn === 'error') [kind, text] = ['lost', 'Offline · sample data'];
-  else if (state.conn === 'connecting') [kind, text] = ['wait', 'Connecting…'];
-  else if (cam && offline(cam)) [kind, text] = ['wait', 'Live camera offline'];
-  $('upd').dataset.state = kind;
-  $('updText').textContent = text;
-}
-
 function renderTotal() {
   const list = [...spots.values()], total = totalFree();
   const known = list.filter(s => level(s) !== 'off').length;
   $('totalN').textContent = total;
   $('totalL').textContent = `free bike spot${total === 1 ? '' : 's'}`;
-  $('totalS').textContent = known === list.length
-    ? `across ${plural(list.length, 'parking rack')}`
-    : `across ${known} of ${list.length} racks · ${list.length - known} without data`;
+  $('totalS').textContent = known === list.length ? `across ${plural(list.length, 'parking rack')}` : `across ${known} of ${list.length} racks`;
 }
 
 function renderLegend() {
@@ -185,6 +184,7 @@ function renderLegend() {
 
 let listHtml = '';
 function renderList() {
+  if (!$('zlist')) return; // the rack list is hidden for now (commented out in index.html)
   const html = [...spots.values()].map(s => {
     const lvl = level(s), n = freeCount(s), walk = walkTo(s), open = s.id === state.selected;
     const pct = lvl === 'off' || !s.capacity ? 0 : Math.max(3, Math.round(Math.min(1, (n ?? 0) / s.capacity) * 100));
@@ -232,7 +232,6 @@ function renderNear() {
 
 function renderAll() {
   trackChanges();
-  renderStatus();
   renderTotal();
   renderList();
   renderMap();
@@ -308,7 +307,6 @@ function renderZone() {
 function openZone(id) {
   const s = spots.get(id);
   closeLive();
-  if (!state.selected) state.homeScroll = window.scrollY;
   state.selected = id;
   zoneHtml = '';
   const live = Boolean(s.has_camera && state.sb);
@@ -327,18 +325,20 @@ function openZone(id) {
   const tag = s.has_camera ? '<span class="tag tag-live" id="ztag"><i></i>LIVE</span>' : s.photo_url ? '<span class="tag tag-photo">PHOTO</span>' : '';
   const zone = $('zone');
   zone.style.setProperty('--ar', s.photo_url && !live ? '1.3333' : '1.7778');
-  zone.innerHTML = `
-    <header class="zh">
-      <button type="button" class="back" data-back aria-label="Back to the map">‹</button>
-      <div class="zt"><h2>${esc(s.name)}</h2><p id="zsub"></p></div>${tag}
-    </header>
-    <div class="media${stage ? '' : ' is-empty'}" id="media">${stage}
-      ${live ? '<span class="media-chip" id="liveStatus" hidden><i></i><span></span></span>' : ''}
-      <div class="media-msg" id="mediaMsg"${msg ? '' : ' hidden'}>${esc(msg)}</div>
-      ${stage ? ZOOM_BUTTONS : ''}
+  zone.innerHTML = `<div class="zone-inner">
+      <header class="zh">
+        <button type="button" class="back" data-back aria-label="Back to the map">‹</button>
+        <div class="zt"><h2>${esc(s.name)}</h2><p id="zsub"></p></div>${tag}
+      </header>
+      <div class="media${stage ? '' : ' is-empty'}" id="media">${stage}
+        ${live ? '<span class="media-chip" id="liveStatus" hidden><i></i><span></span></span>' : ''}
+        <div class="media-msg" id="mediaMsg"${msg ? '' : ' hidden'}>${esc(msg)}</div>
+        ${stage ? ZOOM_BUTTONS : ''}
+      </div>
+      <div class="zdyn" id="zdyn"></div>
     </div>
-    <div class="zdyn" id="zdyn"></div>`;
-  $('home').hidden = true;
+    <p class="privacy">The live view is never recorded and only the counts are stored. Number plates in the photos are blurred.</p>`;
+  $('home').inert = true; // the map stays underneath, out of reach of the keyboard
   zone.hidden = false;
   document.body.classList.add('zone-open');
 
@@ -370,8 +370,7 @@ function openZone(id) {
   }
   state.closeLive = () => closers.forEach(close => close());
   renderAll();
-  window.scrollTo(0, 0);
-  $('main').scrollTop = 0;
+  zone.scrollTop = 0;
   zone.focus({ preventScroll: true });
 }
 
@@ -382,20 +381,12 @@ function closeLive() {
 
 function closeZone() {
   closeLive();
-  const id = state.selected;
   state.selected = null;
   $('zone').hidden = true;
   $('zone').replaceChildren();
-  $('home').hidden = false;
+  $('home').inert = false;
   document.body.classList.remove('zone-open');
   renderAll();
-  if (state.toMap) {
-    state.toMap = false;
-    showMap();
-  } else {
-    window.scrollTo(0, state.homeScroll);
-    document.querySelector(`.zrow[data-zone="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
-  }
 }
 
 // ---------- navigation: #<rack id> opens a rack, so the phone's back button closes it ----------
@@ -486,9 +477,9 @@ function updateRoute() {
     detail = 'Use the Google Maps link on the plan';
   } else {
     const metres = Math.round(r.length);
-    // The first leg is often just the step onto the footpath; the direction to tell is the walk after it.
-    const [a, b, c] = r.points, leg = c && distance(a, b) < 8 ? [b, c] : [a, b];
-    title = metres < 8 ? `You have arrived at ${s.name}` : `Head ${heading(...leg)}`;
+    // The first legs are often just short steps onto the footpath; the direction to tell is the first real walk.
+    const i = Math.max(0, r.points.findIndex((p, k) => k + 1 < r.points.length && distance(p, r.points[k + 1]) >= 8));
+    title = metres < 8 ? `You have arrived at ${s.name}` : `Head ${heading(r.points[i], r.points[i + 1] ?? r.points[i])}`;
     detail = `${fmtM(r.length)} · about ${minutes(r.length)} min to ${s.name} · ${freeText(s)}`;
   }
   map.setRoute(r?.points ?? null, r?.fromOutside);
@@ -503,17 +494,8 @@ function startDirections(id) {
   if (!state.user) startLocating();
   updateRoute();
   renderMap();
-  if (state.selected) {
-    state.toMap = true;
-    goHome();
-  } else {
-    showMap('smooth');
-  }
-}
-
-// On a phone the map sits between the total and the list; on a laptop it is always in view.
-function showMap(behavior = 'auto') {
-  if (matchMedia('(max-width: 899px)').matches) $('mapcard').scrollIntoView({ block: 'start', behavior });
+  map.reset(); // show the whole route, even if the map was zoomed somewhere else
+  if (state.selected) goHome();
 }
 
 function endDirections() {
@@ -606,7 +588,34 @@ function onPositionError(err) {
   }
 }
 
+// ---------- light / dark ----------
+
+const THEME_KEY = 'bikeslot.theme';
+const savedTheme = () => { try { return localStorage.getItem(THEME_KEY); } catch { return null; } };
+function setTheme(theme, save) {
+  const dark = theme === 'dark';
+  document.documentElement.dataset.theme = theme;
+  $('theme').textContent = dark ? '☀️' : '🌙';
+  $('theme').setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#0f141a' : '#f3f5f8';
+  if (save) try { localStorage.setItem(THEME_KEY, theme); } catch { /* storage unavailable */ }
+}
+$('theme').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true));
+// Until the visitor picks one, follow the device setting.
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (!savedTheme()) setTheme(e.matches ? 'dark' : 'light', false);
+});
+
 // ---------- wiring ----------
+
+document.querySelector('.zoombox').addEventListener('click', e => {
+  const action = e.target.closest('[data-map]')?.dataset.map;
+  if (action === 'in') map.zoom(1.5);
+  else if (action === 'out') map.zoom(1 / 1.5);
+  else if (action === 'home') map.reset();
+});
+// The opening view depends on the panels' size (e.g. when the route card appears).
+new ResizeObserver(() => map.relayout()).observe($('dock'));
 
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-zone], [data-back], [data-home], [data-go], [data-end], [data-action]');
@@ -635,6 +644,7 @@ document.addEventListener('keydown', e => {
 });
 
 async function init() {
+  setTheme(document.documentElement.dataset.theme, false);
   $('compass').style.setProperty('--rot', `${-SITE.bearing}deg`);
   renderLegend();
   map.fit();
@@ -645,18 +655,11 @@ async function init() {
   renderAll();
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     useSample();
-    state.conn = 'sample';
   } else {
     try {
-      state.sb = await connect(applyRow, status => {
-        if (status === 'SUBSCRIBED') state.conn = 'live';
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') state.conn = 'connecting';
-        renderStatus();
-      });
-      state.conn = 'live';
+      state.sb = await connect(applyRow, () => {});
     } catch (err) {
       useSample();
-      state.conn = 'error';
       toast(`Could not load live data (${esc(err.message)}). Showing sample data.`, 'info');
     }
   }

@@ -99,7 +99,7 @@ export function route(from, spot) {
   SITE.paths.forEach(([a, b]) => link(a, b));
   link(spot.access, 'dest');
 
-  const onSite = inside(from, SITE.fence);
+  const onSite = (SITE.grounds || [SITE.fence]).some(area => inside(from, area));
   if (onSite) {
     // Join the walkways at their nearest point, as a person would, instead of cutting across the grass.
     let join = null;

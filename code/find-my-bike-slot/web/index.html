@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f141a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f5f8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="description" content="Live bicycle parking availability and directions on the company site.">
@@ -13,49 +12,63 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="preload" href="fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <script>
+    // Light or dark before the first paint: the visitor's choice if saved, otherwise the device setting.
+    (() => {
+      let theme = null;
+      try { theme = localStorage.getItem('bikeslot.theme'); } catch { /* storage unavailable */ }
+      if (theme !== 'light' && theme !== 'dark') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app">
-    <header class="ah">
-      <a class="brand" href="./" data-home>
-        <span class="logo"><svg width="20" height="20" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="12" r="3.2"/><circle cx="14" cy="12" r="3.2"/><path d="M4 12l3.5-6h5L14 12M7.5 6L10 12h4M6.5 4h2.5"/></svg></span>
-        <span>Find my Bike Slot</span>
-      </a>
-      <span class="upd" id="upd" data-state="wait" role="status"><i></i><span id="updText">Connecting…</span></span>
-    </header>
+  <main class="mapview" id="home" aria-label="Site plan">
+    <svg id="map" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Bird's-eye plan of the site with bicycle parking racks"></svg>
 
-    <section class="card total" aria-label="Free bike spots on the site">
-      <div class="total-n" id="totalN">–</div>
-      <div><div class="total-l" id="totalL">free bike spots</div><div class="total-s" id="totalS"></div></div>
-    </section>
-
-    <main class="main" id="main">
-      <section class="home" id="home" aria-label="Site plan">
-        <div class="card mapcard" id="mapcard">
-          <div class="mapwrap">
-            <svg id="map" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Bird's-eye plan of the site with bicycle parking racks"></svg>
-            <div class="north" id="compass" aria-hidden="true"><span>▲<b>N</b></span></div>
-            <button class="locate" id="locate" type="button" aria-pressed="false" data-state="off">
-              <svg viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4"/><circle cx="7" cy="7" r="1.4" fill="currentColor"/><path d="M7 0v2.5M7 11.5V14M0 7h2.5M11.5 7H14"/></svg>
-              <span id="locateText">Locate me</span>
-            </button>
-            <div class="banner" id="banner" hidden></div>
-          </div>
-          <div class="route-card" id="routeCard" aria-live="polite" hidden></div>
-          <div class="near" id="near" hidden></div>
-          <div class="legend" id="legend" aria-label="Map legend"></div>
-        </div>
+    <div class="ov ov-top">
+      <section class="card total" id="total" aria-label="Free bike spots on the site">
+        <span class="logo"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="4" cy="12" r="3.2"/><circle cx="14" cy="12" r="3.2"/><path d="M4 12l3.5-6h5L14 12M7.5 6L10 12h4M6.5 4h2.5"/></svg></span>
+        <div class="total-n" id="totalN">–</div>
+        <div class="total-t"><div class="total-l" id="totalL">free bike spots</div><div class="total-s" id="totalS"></div></div>
       </section>
-      <section class="zone" id="zone" tabindex="-1" aria-label="Rack details" hidden></section>
-    </main>
+      <div class="ov-side">
+        <button type="button" class="round theme" id="theme" aria-label="Switch to dark mode">🌙</button>
+        <div class="round north" id="compass" aria-hidden="true"><span>▲<b>N</b></span></div>
+      </div>
+    </div>
 
-    <section class="card zlist" aria-label="Bike parking racks">
-      <h2 class="rl-h">Parking racks</h2>
-      <div id="zlist"></div>
-      <p class="privacy">The live view is never recorded and only the counts are stored. Number plates in the photos are blurred.</p>
-    </section>
-  </div>
+    <div class="ov ov-bottom">
+      <div class="dock" id="dock">
+        <div class="banner" id="banner" hidden></div>
+        <div class="route-card" id="routeCard" aria-live="polite" hidden></div>
+        <div class="near" id="near" hidden></div>
+        <div class="legend" id="legend" aria-label="Map legend"></div>
+      </div>
+      <div class="controls">
+        <div class="zoombox">
+          <button type="button" data-map="in" aria-label="Zoom in">+</button>
+          <button type="button" data-map="out" aria-label="Zoom out">−</button>
+          <button type="button" data-map="home" aria-label="Show the whole map">⤢</button>
+        </div>
+        <button class="locate" id="locate" type="button" aria-pressed="false" data-state="off">
+          <svg viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4"/><circle cx="7" cy="7" r="1.4" fill="currentColor"/><path d="M7 0v2.5M7 11.5V14M0 7h2.5M11.5 7H14"/></svg>
+          <span id="locateText">Locate me</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <section class="zone" id="zone" tabindex="-1" aria-label="Rack details" hidden></section>
+
+  <!-- Parking racks list: hidden for now, the map shows the same information on each rack.
+  <section class="card zlist" aria-label="Bike parking racks">
+    <h2 class="rl-h">Parking racks</h2>
+    <div id="zlist"></div>
+  </section>
+  -->
+
   <div id="toasts" aria-live="polite"></div>
 
   <noscript><p class="noscript">Find my Bike Slot needs JavaScript to show the live parking plan.</p></noscript>
