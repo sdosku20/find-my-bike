@@ -30,13 +30,53 @@ const shape = (parent, r, cls, dx = 0, dy = 0) => {
   return node;
 };
 
+// Trees with a little depth: a round crown with a shadow and a sunlit side, or a two-tone pine.
+function drawTree(g, [x, y, r, kind], far) {
+  el('ellipse', { cx: x + r * 0.45, cy: y + r * 0.55, rx: r * 1.05, ry: r * 0.6, class: 'm-shadow' }, g);
+  if (kind === 'pine') {
+    el('rect', { x: x - r * 0.18, y: y + r * 0.55, width: r * 0.36, height: r * 0.55, class: 'm-trunk' }, g);
+    for (const [w, base, top] of [[1, 0.75, -0.55], [0.75, 0.15, -1.3]]) {
+      el('polygon', { points: `${x - r * w},${y + r * base} ${x + r * w},${y + r * base} ${x},${y + r * top}`, class: `m-pine${far ? ' is-far' : ''}` }, g);
+      el('polygon', { points: `${x - r * w},${y + r * base} ${x},${y + r * base} ${x},${y + r * top}`, class: 'm-tree-hi' }, g);
+    }
+  } else {
+    el('circle', { cx: x, cy: y, r, class: `m-tree${far ? ' is-far' : ''}` }, g);
+    el('circle', { cx: x - r * 0.3, cy: y - r * 0.3, r: r * 0.5, class: 'm-tree-hi' }, g);
+  }
+}
+
+// A neighbouring house: one colour, any outline; two-storey houses cast a longer shadow.
+function drawHouse(g, h) {
+  const d = h.floors > 1 ? 1.8 : 1;
+  shape(g, h, 'm-shadow', d, d * 1.3);
+  shape(g, h, 'm-house');
+}
+
+// Tennis club: clay courts with white lines and the net across the middle.
+function drawTennis(g, t) {
+  el('rect', { ...box(t), rx: 3, class: 'm-tennis-lot' }, g);
+  for (const c of t.courts) {
+    el('rect', { ...box(c), rx: 0.6, class: 'm-clay' }, g);
+    const lines = el('g', { class: 'm-court-line' }, g);
+    const ix = c.x + 2.5, iy = c.y + 2, iw = c.w - 5, ih = c.h - 4, cx = c.x + c.w / 2, cy = c.y + c.h / 2;
+    el('rect', { x: ix, y: iy, width: iw, height: ih }, lines);
+    el('line', { x1: ix, y1: iy + 1.4, x2: ix + iw, y2: iy + 1.4 }, lines);
+    el('line', { x1: ix, y1: iy + ih - 1.4, x2: ix + iw, y2: iy + ih - 1.4 }, lines);
+    el('line', { x1: cx - 6.4, y1: iy + 1.4, x2: cx - 6.4, y2: iy + ih - 1.4 }, lines);
+    el('line', { x1: cx + 6.4, y1: iy + 1.4, x2: cx + 6.4, y2: iy + ih - 1.4 }, lines);
+    el('line', { x1: cx - 6.4, y1: cy, x2: cx + 6.4, y2: cy }, lines);
+    el('line', { x1: cx, y1: iy - 0.6, x2: cx, y2: iy + ih + 0.6, class: 'm-net' }, g);
+  }
+  if (t.label) label(g, t.x + t.w / 2 + 12, t.y + t.h - 1.6, t.label.toUpperCase(), 'm-park-label');
+}
+
 function drawGround(svg) {
   const g = el('g', {}, svg);
   const v = SITE.view;
   // Land well beyond the plan, so any screen shape and any pan shows surroundings instead of empty space.
   el('rect', { x: v.x - 600, y: v.y - 600, width: v.w + 1200, height: v.h + 1200, class: 'm-land' }, g);
-  for (const [x, y, w, h] of SITE.around?.blocks || []) el('rect', { x, y, width: w, height: h, rx: 2, class: 'm-block' }, g);
-  for (const [cx, cy, r] of SITE.around?.trees || []) el('circle', { cx, cy, r, class: 'm-tree is-far' }, g);
+  for (const h of SITE.around?.houses || []) drawHouse(g, h);
+  for (const t of SITE.around?.trees || []) drawTree(g, t, true);
   for (const st of SITE.streets) {
     el('rect', { ...box(st), class: 'm-street' }, g);
     const mid = st.vertical ? st.x + st.w / 2 : st.y + st.h / 2;
@@ -49,6 +89,7 @@ function drawGround(svg) {
     el('rect', { ...box(SITE.park), rx: 6, class: 'm-park' }, g);
     if (pond) el('ellipse', { cx: pond.x, cy: pond.y, rx: pond.rx, ry: pond.ry, class: 'm-pond' }, g);
   }
+  if (SITE.tennis) drawTennis(g, SITE.tennis);
   const walk = el('g', { class: 'm-walk' }, g);
   for (const [a, b] of SITE.paths) line(walk, SITE.nodes[a], SITE.nodes[b]);
   for (const gate of SITE.gates) line(walk, [gate.x, gate.y], gate.street);
@@ -62,7 +103,7 @@ function drawGround(svg) {
     el('circle', { cx: x, cy: y, r, class: 'm-plaza' }, g);
     el('circle', { cx: x, cy: y, r: r * 0.38, class: 'm-fountain' }, g);
   }
-  for (const [cx, cy, r] of SITE.trees || []) el('circle', { cx, cy, r, class: 'm-tree' }, g);
+  for (const t of SITE.trees || []) drawTree(g, t, false);
   for (const b of SITE.buildings) {
     shape(g, b, 'm-shadow', 0.9, 1.3);
     shape(g, b, `m-building${b.tone ? ` is-${b.tone}` : ''}`);
@@ -96,15 +137,15 @@ function drawSpot(svg, spot, onSelect) {
   const [cx, cy] = center(rack);
   let main, sub = null, texts;
   if (horizontal) {
-    const t = el('text', { x: cx, y: cy + 1.6, class: 'm-ztext', 'text-anchor': 'middle' }, g);
+    const t = el('text', { x: cx, y: cy + 1.25, class: 'm-ztext', 'text-anchor': 'middle' }, g);
     el('tspan', { class: 'm-zname' }, t).textContent = `${name} · `;
     main = el('tspan', { class: 'm-zcount' }, t);
     texts = [[t, rack.w - 3, cy]];
   } else {
-    const top = label(g, cx, cy - 7.5, name, 'm-ztext m-zname');
-    main = label(g, cx, cy + 2.6, '–', 'm-ztext m-zbig');
-    sub = label(g, cx, cy + 8, '', 'm-ztext m-zsub');
-    texts = [[top, rack.w - 2, cy - 8.8], [main, rack.w - 2, cy], [sub, rack.w - 2, cy + 7]];
+    const top = label(g, cx, cy - 5.6, name, 'm-ztext m-zname');
+    main = label(g, cx, cy + 2, '–', 'm-ztext m-zbig');
+    sub = label(g, cx, cy + 6.4, '', 'm-ztext m-zsub');
+    texts = [[top, rack.w - 3, cy - 6.6], [main, rack.w - 3, cy], [sub, rack.w - 3, cy + 5.6]];
   }
   const live = spot.camera ? el('circle', { cx: rack.x + rack.w - 2.8, cy: rack.y + 2.8, r: 1.6, class: 'm-live' }, g) : null;
 
@@ -172,6 +213,19 @@ export function createMap(svg, onSelect, { insets = () => ({ top: 0, right: 0, b
     const per = view.w / size()[0];
     moved = true;
     show({ ...view, x: view.x - dx * per, y: view.y - dy * per });
+  }
+
+  let back = null;
+  function animateTo(to, ms, done) {
+    const from = { ...view }, start = performance.now();
+    const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+    const step = now => {
+      const t = Math.min(1, (now - start) / ms), k = ease(t);
+      show({ x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k, w: from.w + (to.w - from.w) * k, h: from.h + (to.h - from.h) * k });
+      if (t < 1) requestAnimationFrame(step);
+      else done?.();
+    };
+    requestAnimationFrame(step);
   }
 
   // ---------- gestures: drag to pan, wheel / pinch / double-click to zoom ----------
@@ -315,7 +369,26 @@ export function createMap(svg, onSelect, { insets = () => ({ top: 0, right: 0, b
     },
     reset() {
       moved = false;
+      back = null;
       show(homeView());
+    },
+    // Zooms in on a rack, then calls done (which opens the rack's full-screen page).
+    focus(id, done) {
+      const spot = SPOTS.find(s => s.id === id);
+      if (!spot || !view || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+      const [W, H] = size(), [cx, cy] = center(spot.rack);
+      const w = Math.max(MIN_VIEW_M, Math.max(spot.rack.w, (spot.rack.h * W) / H) * 2.4), h = (w * H) / W;
+      back = { view: { ...view }, moved };
+      moved = true;
+      animateTo({ x: cx - w / 2, y: cy - h / 2, w, h }, 520, done);
+    },
+    // Back to the view from before focus().
+    unfocus() {
+      if (!back) return;
+      const { view: to, moved: wasMoved } = back;
+      back = null;
+      moved = wasMoved;
+      animateTo(wasMoved ? to : homeView(), 420);
     },
     zoom(factor) {
       const [W, H] = size();

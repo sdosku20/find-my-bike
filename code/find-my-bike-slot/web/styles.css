@@ -32,6 +32,12 @@
   --building-ink: #4f5b67;
   --roof-shadow: rgba(40, 55, 70, 0.2);
   --block: #d9dfd5;
+  --house: #d3cbbf;
+  --tennis: #9cc58a;
+  --clay: #cf7a4f;
+  --pine: #6f9f63;
+  --tree-hi: rgba(255, 255, 255, 0.28);
+  --trunk: #8b6b4c;
   --plaza: #f3efe6;
   --water: #b3d2e2;
   --fence: #a6b0a9;
@@ -72,6 +78,12 @@
   --building-ink: #c3ccd5;
   --roof-shadow: rgba(0, 0, 0, 0.45);
   --block: #19221c;
+  --house: #303a34;
+  --tennis: #26432d;
+  --clay: #8f4a2b;
+  --pine: #1f4a2c;
+  --tree-hi: rgba(255, 255, 255, 0.1);
+  --trunk: #5b4431;
   --plaza: #2c3630;
   --water: #2b4757;
   --fence: #4f5d55;
@@ -117,6 +129,8 @@ h1, h2, h3 { margin: 0; }
 .mapview { position: fixed; inset: 0; overflow: hidden; background: var(--land); }
 #map { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 #map.is-dragging { cursor: grabbing; }
+.map3d { position: absolute; inset: 0; background: var(--land); cursor: grab; }
+.map3d canvas { display: block; }
 
 .ov { position: absolute; display: flex; gap: 10px; pointer-events: none; }
 .ov > *, .dock > *, .controls > * { pointer-events: auto; }
@@ -163,6 +177,8 @@ h1, h2, h3 { margin: 0; }
   box-shadow: var(--shadow);
 }
 .theme { font-size: 19px; line-height: 1; cursor: pointer; }
+.mode { font-size: 14px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; }
+.mode[aria-pressed="true"] { background: var(--me); border-color: var(--me); color: #fff; }
 .north { width: 34px; height: 34px; font-size: 8px; color: var(--full); }
 .north span { display: grid; justify-items: center; line-height: 1; transform: rotate(var(--rot, 0deg)); }
 .north b { color: var(--text); font-size: 10px; }
@@ -443,6 +459,11 @@ body.media-full { overflow: hidden; }
 
 .m-land { fill: var(--land); }
 .m-block { fill: var(--block); }
+.m-house { fill: var(--house); }
+.m-tennis-lot { fill: var(--tennis); }
+.m-clay { fill: var(--clay); }
+.m-court-line rect, .m-court-line line { fill: none; stroke: #fff; stroke-width: 0.3; }
+.m-net { stroke: var(--text); stroke-width: 0.45; opacity: 0.7; }
 .m-street { fill: var(--road); }
 .m-street-line { stroke: var(--card); stroke-width: 0.6; stroke-dasharray: 3 3; }
 .m-street-label { font-size: 2.6px; font-weight: 800; letter-spacing: 0.3px; fill: var(--sub); }
@@ -453,6 +474,10 @@ body.media-full { overflow: hidden; }
 .m-park-label { font-size: 2.8px; font-weight: 800; letter-spacing: 0.3px; fill: var(--plenty-ink); opacity: 0.7; text-anchor: middle; }
 .m-tree { fill: var(--tree); }
 .m-tree.is-far { fill: var(--tree-far); }
+.m-tree-hi { fill: var(--tree-hi); }
+.m-pine { fill: var(--pine); }
+.m-pine.is-far { fill: var(--tree-far); }
+.m-trunk { fill: var(--trunk); }
 .m-walk line { stroke: var(--path); stroke-width: 4.5; stroke-linecap: round; }
 .m-plaza { fill: var(--plaza); stroke: var(--path); stroke-width: 1.2; }
 .m-fountain { fill: var(--water); }
@@ -468,11 +493,11 @@ body.media-full { overflow: hidden; }
 .m-rack { fill: var(--c-soft); stroke: var(--c); stroke-width: 0.8; transition: fill 0.4s, stroke 0.4s; }
 .m-spot:hover .m-rack { stroke-width: 1.2; }
 .m-ztext { fill: var(--c-ink); pointer-events: none; }
-.m-zname { font-size: 3.8px; font-weight: 700; }
-.m-zcount { font-size: 4.4px; font-weight: 800; }
-.m-zbig { font-size: 6.6px; font-weight: 800; }
-.m-zbig.is-word { font-size: 4.2px; }
-.m-zsub { font-size: 3.3px; font-weight: 700; }
+.m-zname { font-size: 2.9px; font-weight: 700; }
+.m-zcount { font-size: 3.4px; font-weight: 800; }
+.m-zbig { font-size: 5px; font-weight: 800; }
+.m-zbig.is-word { font-size: 3.3px; }
+.m-zsub { font-size: 2.6px; font-weight: 700; }
 .m-live { fill: var(--off); stroke: var(--card); stroke-width: 0.5; }
 .m-live.is-on { fill: var(--full); animation: pulse 1.6s infinite; }
 .m-spot.flash .m-rack { animation: flash 0.6s ease-in-out 4; }

@@ -54,7 +54,29 @@ function mapInsets() {
     left: 8,
   };
 }
-const map = createMap($('map'), openSpot, { insets: mapInsets });
+// Two views of the same plan: the 2D map is always there, the 3D one is loaded the first time it is opened.
+const map2d = createMap($('map'), selectRack, { insets: mapInsets });
+let map3d = null, mode = '2d';
+const active = () => (mode === '3d' && map3d ? map3d : map2d);
+const both = () => (map3d ? [map2d, map3d] : [map2d]);
+const map = {
+  update: (...a) => both().forEach(m => m.update(...a)),
+  setRoute: (...a) => both().forEach(m => m.setRoute(...a)),
+  setUser: (...a) => both().forEach(m => m.setUser(...a)),
+  fit: (...a) => both().forEach(m => m.fit(...a)),
+  relayout: () => both().forEach(m => m.relayout()),
+  reset: () => active().reset(),
+  zoom: f => active().zoom(f),
+};
+
+// ?debug exposes both maps to the browser console (and to the tests).
+if (params.has('debug')) window.__maps = { map2d, get map3d() { return map3d; } };
+
+// Tapping a rack on the map: the camera flies in, then the rack's photo or live view opens full screen.
+function selectRack(id) {
+  if (state.selected) return openSpot(id);
+  active().focus(id, () => openSpot(id));
+}
 
 // ---------- status ----------
 
@@ -205,6 +227,8 @@ function renderMap() {
     level: level(s),
     free: freeCount(s),
     text: freeText(s),
+    // Share of the stands taken, for the bikes drawn in 3D.
+    occupancy: s.capacity && freeCount(s) != null ? Math.min(1, Math.max(0, 1 - freeCount(s) / s.capacity)) : 0,
     label: `${s.name}: ${freeText(s)}, ${sourceText(s)}`,
     live: isLive(s),
     flash: flashing.has(s.id),
@@ -387,6 +411,7 @@ function closeZone() {
   $('home').inert = false;
   document.body.classList.remove('zone-open');
   renderAll();
+  active().unfocus();
 }
 
 // ---------- navigation: #<rack id> opens a rack, so the phone's back button closes it ----------
@@ -599,7 +624,45 @@ function setTheme(theme, save) {
   $('theme').setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
   document.querySelector('meta[name="theme-color"]').content = dark ? '#0f141a' : '#f3f5f8';
   if (save) try { localStorage.setItem(THEME_KEY, theme); } catch { /* storage unavailable */ }
+  map3d?.setTheme();
 }
+
+// ---------- 2D / 3D ----------
+
+const MODE_KEY = 'bikeslot.mode';
+async function setMode(next, save) {
+  const button = $('mode');
+  if (next === '3d' && !map3d) {
+    button.disabled = true;
+    $('map3d').hidden = false;
+    try {
+      const { createMap3D } = await import('./map3d.js');
+      map3d = await createMap3D($('map3d'), selectRack, {
+        insets: mapInsets,
+        onRotate: deg => { if (mode === '3d') $('compass').style.setProperty('--rot', `${deg - SITE.bearing}deg`); },
+      });
+      renderMap();
+      renderUser();
+      updateRoute();
+    } catch (err) {
+      $('map3d').hidden = true;
+      button.disabled = false;
+      toast('The 3D view could not start on this device.', 'info');
+      return;
+    }
+    button.disabled = false;
+  }
+  mode = next;
+  const three = mode === '3d';
+  $('map3d').hidden = !three;
+  $('map').hidden = three;
+  button.textContent = three ? '2D' : '3D';
+  button.setAttribute('aria-label', three ? 'Show the flat map' : 'Show the map in 3D');
+  if (!three) $('compass').style.setProperty('--rot', `${-SITE.bearing}deg`);
+  else map3d.render();
+  if (save) try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage unavailable */ }
+}
+$('mode').addEventListener('click', () => setMode(mode === '3d' ? '2d' : '3d', true));
 $('theme').addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true));
 // Until the visitor picks one, follow the device setting.
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
@@ -646,6 +709,9 @@ document.addEventListener('keydown', e => {
 async function init() {
   setTheme(document.documentElement.dataset.theme, false);
   $('compass').style.setProperty('--rot', `${-SITE.bearing}deg`);
+  let savedMode = null;
+  try { savedMode = localStorage.getItem(MODE_KEY); } catch { /* storage unavailable */ }
+  if (savedMode === '3d' || params.get('view') === '3d') setMode('3d', false);
   renderLegend();
   map.fit();
   if (state.user) {

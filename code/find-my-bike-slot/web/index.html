@@ -26,6 +26,7 @@
 <body>
   <main class="mapview" id="home" aria-label="Site plan">
     <svg id="map" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Bird's-eye plan of the site with bicycle parking racks"></svg>
+    <div class="map3d" id="map3d" role="group" aria-label="3D view of the site with bicycle parking racks" hidden></div>
 
     <div class="ov ov-top">
       <section class="card total" id="total" aria-label="Free bike spots on the site">
@@ -35,6 +36,7 @@
       </section>
       <div class="ov-side">
         <button type="button" class="round theme" id="theme" aria-label="Switch to dark mode">🌙</button>
+        <button type="button" class="round mode" id="mode" aria-label="Show the map in 3D">3D</button>
         <div class="round north" id="compass" aria-hidden="true"><span>▲<b>N</b></span></div>
       </div>
     </div>
