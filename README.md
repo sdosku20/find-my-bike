@@ -1,4 +1,4 @@
-# Find my Bike Slot · HackBasel 2026 (Endress+Hauser challenge)
+# Find my Bike Slot · BaselHack 2026 (Endress+Hauser challenge)
 
 A website that shows which bike racks on the site have free space: a live camera view, analysed photos, a
 bird's-eye map and walking directions. It works on phones and laptops, with no app to install.
