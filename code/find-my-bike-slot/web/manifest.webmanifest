@@ -1,0 +1,13 @@
+{
+  "name": "Find my Bike Slot",
+  "short_name": "Bike Slot",
+  "description": "Live bicycle parking availability and directions on the company site.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f8",
+  "theme_color": "#f3f5f8",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"},
+    {"src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png"}
+  ]
+}
