@@ -1,2 +1,7 @@
 # Original rack photos show readable number plates: only the blurred versions in web/photos are published.
 /images/
+
+__pycache__/
+*.pyc
+code/*/tool/server.log
+code/*/tool/ready.json
