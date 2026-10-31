@@ -4,39 +4,39 @@ export const SNAPSHOTS = {
   "west": {
     "photo": "photos/west.jpg",
     "taken_at": "2026-10-29T08:37:50",
-    "bikes": 6,
+    "bikes": 7,
     "free_estimate": 3,
-    "capacity": 9,
+    "capacity": 10,
     "bike_area_px2": 45000,
     "gaps": [
       {
         "rank": 1,
-        "area_px2": 107924,
-        "pos": 0.3,
+        "area_px2": 119159,
+        "pos": 0.27,
         "fits": 2
       },
       {
         "rank": 2,
-        "area_px2": 59700,
+        "area_px2": 58889,
         "pos": 0.58,
         "fits": 1
       },
       {
         "rank": 3,
-        "area_px2": 35617,
+        "area_px2": 32780,
         "pos": 0.45,
         "fits": 0
       },
       {
         "rank": 4,
-        "area_px2": 15434,
-        "pos": 0.75,
+        "area_px2": 12222,
+        "pos": 0.67,
         "fits": 0
       },
       {
         "rank": 5,
-        "area_px2": 7456,
-        "pos": 0.67,
+        "area_px2": 5068,
+        "pos": 0.78,
         "fits": 0
       }
     ]
@@ -44,39 +44,39 @@ export const SNAPSHOTS = {
   "east": {
     "photo": "photos/east.jpg",
     "taken_at": "2026-10-29T08:39:09",
-    "bikes": 10,
+    "bikes": 11,
     "free_estimate": 1,
-    "capacity": 11,
+    "capacity": 12,
     "bike_area_px2": 45000,
     "gaps": [
       {
         "rank": 1,
-        "area_px2": 67188,
-        "pos": 0.53,
+        "area_px2": 53352,
+        "pos": 0.52,
         "fits": 1
       },
       {
         "rank": 2,
-        "area_px2": 44204,
-        "pos": 0.42,
+        "area_px2": 22594,
+        "pos": 0.43,
         "fits": 0
       },
       {
         "rank": 3,
-        "area_px2": 24420,
-        "pos": 0.35,
+        "area_px2": 13635,
+        "pos": 0.67,
         "fits": 0
       },
       {
         "rank": 4,
-        "area_px2": 22309,
+        "area_px2": 11050,
         "pos": 0.22,
         "fits": 0
       },
       {
         "rank": 5,
-        "area_px2": 19069,
-        "pos": 0.67,
+        "area_px2": 9994,
+        "pos": 0.33,
         "fits": 0
       }
     ]
@@ -84,39 +84,39 @@ export const SNAPSHOTS = {
   "gate": {
     "photo": "photos/gate.jpg",
     "taken_at": "2026-10-29T08:45:21",
-    "bikes": 18,
-    "free_estimate": 3,
-    "capacity": 21,
+    "bikes": 32,
+    "free_estimate": 2,
+    "capacity": 34,
     "bike_area_px2": 30000,
     "gaps": [
       {
         "rank": 1,
-        "area_px2": 40750,
-        "pos": 0.73,
+        "area_px2": 53924,
+        "pos": 0.61,
         "fits": 1
       },
       {
         "rank": 2,
-        "area_px2": 35366,
-        "pos": 0.47,
+        "area_px2": 33118,
+        "pos": 0.8,
         "fits": 1
       },
       {
         "rank": 3,
-        "area_px2": 30035,
+        "area_px2": 24573,
         "pos": 0.52,
-        "fits": 1
+        "fits": 0
       },
       {
         "rank": 4,
-        "area_px2": 25568,
-        "pos": 0.87,
+        "area_px2": 19250,
+        "pos": 0.45,
         "fits": 0
       },
       {
         "rank": 5,
-        "area_px2": 19389,
-        "pos": 0.91,
+        "area_px2": 12947,
+        "pos": 0.38,
         "fits": 0
       }
     ]
