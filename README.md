@@ -24,3 +24,9 @@ bird's-eye map and walking directions. It works on phones and laptops, with no a
 
 Detection runs on the station. Only the counts are stored, the live view is never recorded, and number plates
 in the photos are blurred.
+## Contributors
+
+- [Youness EL MOURID](https://github.com/Y00NSS)
+  — Computer Vision, YOLO-based bicycle detection,
+  OpenCV, parking slot availability analysis,
+  and NVIDIA Jetson Nano integration.
